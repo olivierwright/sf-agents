@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 import { ApiService, RecipeInfo, UseCaseInfo, DealResponse, HealthResponse } from './api.service';
 import { SseService, RunEventData } from './sse.service';
 
-export type RunPhase = 'idle' | 'planning' | 'executing' | 'verifying' | 'done' | 'error';
+export type RunPhase = 'idle' | 'planning' | 'executing' | 'verifying' | 'waiting_for_input' | 'done' | 'error';
 
 export interface DagStep {
   step_id: string;
@@ -54,6 +54,9 @@ export class RunStateService {
   readonly questionDraft = signal<string>('');
   readonly strategyDraft = signal<string>('thorough');
 
+  // Human-in-the-loop clarification state
+  readonly pendingClarification = signal<{ step_id: string; question: string; issues: string[]; confidence: number } | null>(null);
+
   // ── Derived ─────────────────────────────────────────────────────────────
   readonly progress = computed(() => {
     const total = this.totalSteps();
@@ -70,7 +73,7 @@ export class RunStateService {
 
   readonly isRunning = computed(() => {
     const p = this.phase();
-    return p === 'planning' || p === 'executing' || p === 'verifying';
+    return p === 'planning' || p === 'executing' || p === 'verifying' || p === 'waiting_for_input';
   });
 
   // ── Bootstrap ───────────────────────────────────────────────────────────
@@ -196,6 +199,16 @@ export class RunStateService {
         break;
       }
 
+      case 'human_clarification_needed':
+        this.phase.set('waiting_for_input');
+        this.pendingClarification.set({
+          step_id: ev.payload['step_id'] as string,
+          question: ev.payload['question'] as string,
+          issues: (ev.payload['issues'] as string[]) ?? [],
+          confidence: ev.payload['confidence'] as number,
+        });
+        break;
+
       case 'verification_done':
         this.phase.set('verifying');
         break;
@@ -229,6 +242,20 @@ export class RunStateService {
     }
   }
 
+  submitClarification(answer: string): void {
+    const id = this.runId();
+    if (!id) return;
+    this.api.clarify(id, answer).subscribe({
+      next: () => {
+        this.pendingClarification.set(null);
+        this.phase.set('executing');
+      },
+      error: (err) => {
+        this.error.set(err?.message ?? 'Failed to submit clarification');
+      },
+    });
+  }
+
   reset(): void {
     this.sub?.unsubscribe();
     this.sub = null;
@@ -244,5 +271,6 @@ export class RunStateService {
     this.error.set(null);
     this.startedAt.set(null);
     this.finishedAt.set(null);
+    this.pendingClarification.set(null);
   }
 }

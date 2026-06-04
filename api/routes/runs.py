@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from sf_agents.config import get_config
 from sf_agents.governance.audit_logger import open_logger
@@ -17,6 +18,8 @@ from sf_agents.orchestrator.executor import Executor
 from sf_agents.orchestrator.planner import Plan, Planner
 from sf_agents.orchestrator.registry import build_default_registry
 from sf_agents.orchestrator.verifier import Verifier
+from sf_agents.primitives._llm import complete
+from sf_agents.primitives.base import PrimitiveOutput
 
 from ..events import RunRequest, RunStatus
 from ..streaming import make_on_event, run_store, sse_generator
@@ -182,6 +185,94 @@ def _default_deal_context(cfg) -> dict:
     }
 
 
+def _make_ask_human(record, on_event) -> Any:
+    """Return a blocking ask_human callback wired to the run record.
+
+    When called from the executor background thread it:
+    1. Emits a ``human_clarification_needed`` SSE event so the UI can display the question.
+    2. Sets the record status to ``waiting_for_input`` and stores the pending question.
+    3. Blocks (with a 5-minute timeout) until the frontend POSTs to ``/clarify``.
+    4. Returns the human's answer string.
+    """
+    from sf_agents.orchestrator.events import EventType, RunEvent
+
+    def _ask(step_id: str, primitive: str, output: PrimitiveOutput, question: str) -> str:
+        record.status = "waiting_for_input"
+        record.pending_clarification = {
+            "step_id": step_id,
+            "primitive": primitive,
+            "confidence": output.confidence,
+            "issues": list(output.issues),
+            "question": question,
+        }
+        # Reset the event so we block on a fresh wait
+        record.clarification_event.clear()
+        record.clarification_answer = None
+        # Emit to the SSE stream
+        on_event(RunEvent(
+            type=EventType.HUMAN_CLARIFICATION_NEEDED,
+            payload=record.pending_clarification,
+        ))
+        # Block until the frontend submits an answer (or times out after 5 min)
+        answered = record.clarification_event.wait(timeout=300)
+        record.status = "running"
+        record.pending_clarification = None
+        if not answered or not record.clarification_answer:
+            return "(no answer provided — treating result as-is)"
+        return record.clarification_answer
+
+    return _ask
+
+
+def _synthesize_answer(
+    question: str,
+    outputs: dict,
+    clarifications: list,
+    citations: list,
+) -> str:
+    """Use the LLM to produce a proper narrative answer from extracted data."""
+    # Build a concise summary of extracted outputs (skip huge payloads)
+    output_summary = []
+    for step_id, out in outputs.items():
+        payload = out.payload
+        if isinstance(payload, dict) and len(str(payload)) < 800:
+            output_summary.append(f"[{step_id}]: {json.dumps(payload, default=str)[:600]}")
+        elif isinstance(payload, list) and len(payload) <= 10:
+            output_summary.append(f"[{step_id}]: {json.dumps(payload, default=str)[:600]}")
+        elif isinstance(payload, str):
+            output_summary.append(f"[{step_id}]: {payload[:400]}")
+
+    clar_text = ""
+    if clarifications:
+        clar_text = "\n\nHUMAN CLARIFICATIONS PROVIDED DURING ANALYSIS:\n" + "\n".join(
+            f"Q: {c['question']}\nA: {c['answer']}" for c in clarifications
+        )
+
+    cite_text = ""
+    if citations:
+        cite_sample = citations[:6]
+        cite_text = "\n\nKEY CITATIONS:\n" + "\n".join(
+            f"- {c.get('source','?')} {c.get('location','')}: \"{c.get('excerpt','')[:120]}\""
+            for c in cite_sample
+        )
+
+    prompt = (
+        "You are a structured finance analyst. Using the extracted data below, "
+        "write a clear, well-structured answer to the investor's question. "
+        "Be specific, use numbers where available, and cite sources where relevant. "
+        "Aim for 3–5 focused paragraphs. Do not include preamble like 'Based on the analysis…'.\n\n"
+        f"QUESTION: {question}\n\n"
+        f"EXTRACTED DATA:\n" + "\n".join(output_summary) +
+        clar_text + cite_text
+    )
+    try:
+        return complete(prompt, max_tokens=1200, temperature=0.3).strip()
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger("sf_agents.api.runs").warning("Answer synthesis failed: %s", exc)
+        return ""
+
+
 def _run_question_worker(
     run_id: str,
     question: str,
@@ -222,7 +313,8 @@ def _run_question_worker(
 
         audit = open_logger(cfg.audit_dir, run_id)
         tracer = RunTracer(run_id=run_id, trace_dir=cfg.trace_dir)
-        executor = Executor(registry, config=cfg, audit_logger=audit, on_event=on_event, tracer=tracer)
+        ask_human = _make_ask_human(record, on_event)
+        executor = Executor(registry, config=cfg, audit_logger=audit, on_event=on_event, tracer=tracer, ask_human=ask_human)
         result = executor.run(plan, run_id=run_id)
 
         verifier = Verifier()
@@ -271,17 +363,30 @@ def _run_question_worker(
                 {"source": c.source, "location": c.location, "excerpt": c.excerpt}
                 for c in (final.citations if final else [])
             ]
+            # Also collect citations from all steps for synthesis context
+            all_citations = [
+                {"source": c.source, "location": c.location, "excerpt": c.excerpt}
+                for out in result.outputs.values()
+                for c in out.citations
+            ]
+            # Synthesize a proper narrative answer instead of returning raw payload
+            narrative = _synthesize_answer(
+                question=question,
+                outputs=result.outputs,
+                clarifications=result.clarifications,
+                citations=all_citations,
+            )
             record.result = {
                 "run_id": run_id,
                 "plan": plan.as_dict(),
                 "question": question,
                 "strategy": strategy,
-                # Use "answer" as the primary key so the answer panel can display it
-                "answer": final.payload if final else None,
+                "answer": narrative or (final.payload if final else None),
                 "citations": citations,
                 "confidence": final.confidence if final else None,
                 "verification": report.as_dict(),
                 "review_queue": result.review_queue,
+                "clarifications": result.clarifications,
                 "audit_path": result.audit_path,
             }
 
@@ -393,12 +498,32 @@ async def stream_run(run_id: str):
     )
 
 
+class ClarifyRequest(BaseModel):
+    answer: str
+
+
+@router.post("/runs/{run_id}/clarify", status_code=200)
+async def clarify_run(run_id: str, body: ClarifyRequest) -> dict[str, str]:
+    """Submit a human answer to the pending clarification question.
+
+    This unblocks the executor thread so the run can continue.
+    """
+    record = run_store.get(run_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
+    if record.status != "waiting_for_input":
+        raise HTTPException(status_code=409, detail="Run is not waiting for clarification")
+    record.clarification_answer = body.answer.strip() or "(no answer provided)"
+    record.clarification_event.set()
+    return {"status": "ok", "run_id": run_id}
+
+
 @router.get("/runs/{run_id}/result")
 async def get_result(run_id: str) -> RunStatus:
     record = run_store.get(run_id)
     if record is None:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
-    if record.status in ("pending", "running"):
+    if record.status in ("pending", "running", "waiting_for_input"):
         raise HTTPException(status_code=425, detail="Run not yet complete")
     return record.to_status()
 

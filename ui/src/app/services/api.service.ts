@@ -167,6 +167,10 @@ export class ApiService {
     return this.http.get<RunStatus>(`/api/runs/${runId}/result`);
   }
 
+  clarify(runId: string, answer: string): Observable<{ status: string; run_id: string }> {
+    return this.http.post<{ status: string; run_id: string }>(`/api/runs/${runId}/clarify`, { answer });
+  }
+
   getAudit(runId: string): Observable<Record<string, unknown>[]> {
     return this.http.get<Record<string, unknown>[]>(`/api/runs/${runId}/audit`);
   }

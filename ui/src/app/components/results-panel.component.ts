@@ -104,6 +104,19 @@ interface CitationGroup { source: string; items: { location: string; excerpt: st
                 </div>
               }
 
+              <!-- Analyst clarifications exchanged during the run -->
+              @if (asArr(result['clarifications']).length > 0) {
+                <div class="clarifications-section">
+                  <div class="sec-label">ANALYST CLARIFICATIONS</div>
+                  @for (c of asArr(result['clarifications']); track c['step_id']) {
+                    <div class="clar-item">
+                      <div class="clar-item-q">🤔 {{ c['question'] }}</div>
+                      <div class="clar-item-a">↳ {{ c['answer'] }}</div>
+                    </div>
+                  }
+                </div>
+              }
+
               <!-- Waterfall steps (extractor.waterfall output) -->
               @if (waterfallSteps(result['answer']).length > 0) {
                 <div class="answer-section">
@@ -537,6 +550,23 @@ interface CitationGroup { source: string; items: { location: string; excerpt: st
 
     /* Comparisons */
     .comparisons-section { margin-bottom: var(--sp-4); }
+    .clarifications-section { margin-bottom: var(--sp-4); }
+    .clar-item {
+      padding: var(--sp-2) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .clar-item:last-child { border-bottom: none; }
+    .clar-item-q {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-bottom: var(--sp-1);
+      font-style: italic;
+    }
+    .clar-item-a {
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+      padding-left: var(--sp-4);
+    }
     .cmp-row {
       display: grid;
       grid-template-columns: 70px 70px 1fr;

@@ -4,8 +4,10 @@ Steps run in dependency order. Each step's args are resolved against upstream
 outputs (the ``{"$from": ..., "path": ...}`` reference convention), the primitive
 is built from the registry and wired to the run's audit logger, and its output is
 captured. A step that raises is retried once. Any output whose confidence falls
-below the floor is routed to a human-review stub (recorded, not silently
-dropped). Connector-style outputs are indexed as *sources* for the verifier.
+below the floor triggers an interactive human clarification request: the run
+pauses, a targeted question is asked, and execution resumes with the answer
+stored for downstream synthesis. Connector-style outputs are indexed as
+*sources* for the verifier.
 """
 
 from __future__ import annotations
@@ -13,16 +15,20 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from ..config import Config, get_config
 from ..governance.audit_logger import AuditLogger
+from ..primitives._llm import complete
 from ..primitives.base import AuditHook, PrimitiveInput, PrimitiveOutput
 from .events import EventType, OnEvent, RunEvent
 from .planner import Plan, Planner
 from .registry import Registry
 
 logger = logging.getLogger("sf_agents.executor")
+
+# Signature: (step_id, primitive, output, question) -> human answer str
+AskHuman = Callable[[str, str, PrimitiveOutput, str], str]
 
 
 @dataclass
@@ -34,6 +40,7 @@ class ExecutionResult:
     outputs: dict[str, PrimitiveOutput]
     sources: dict[str, dict[str, Any]]
     review_queue: list[dict[str, Any]] = field(default_factory=list)
+    clarifications: list[dict[str, Any]] = field(default_factory=list)
     final_step_id: Optional[str] = None
     audit_path: Optional[str] = None
 
@@ -55,12 +62,14 @@ class Executor:
         audit_logger: Optional[AuditLogger] = None,
         on_event: Optional[OnEvent] = None,
         tracer: Optional[Any] = None,
+        ask_human: Optional[AskHuman] = None,
     ) -> None:
         self._registry = registry
         self._config = config or get_config()
         self._audit = audit_logger
         self._on_event = on_event
         self._tracer = tracer  # RunTracer instance or None
+        self._ask_human = ask_human  # optional human-in-the-loop callback
 
     def _emit(self, event_type: EventType, payload: dict) -> None:
         """Emit a :class:`RunEvent` to the registered callback, if any.
@@ -95,6 +104,7 @@ class Executor:
         outputs: dict[str, PrimitiveOutput] = {}
         sources: dict[str, dict[str, Any]] = {}
         review_queue: list[dict[str, Any]] = []
+        clarifications: list[dict[str, Any]] = []
         _current_step_id: Optional[str] = None
 
         try:
@@ -138,11 +148,36 @@ class Executor:
                 )
 
                 if output.confidence < self._config.confidence_floor:
-                    review_entry = _human_review(
-                        step.step_id, step.primitive, output, self._config.confidence_floor
-                    )
-                    review_queue.append(review_entry)
-                    self._emit(EventType.HUMAN_REVIEW_REQ, review_entry)
+                    if self._ask_human is not None:
+                        question = _generate_clarification_question(
+                            step.step_id, step.primitive, output, plan.explanation
+                        )
+                        self._emit(
+                            EventType.HUMAN_CLARIFICATION_NEEDED,
+                            {
+                                "step_id": step.step_id,
+                                "primitive": step.primitive,
+                                "confidence": output.confidence,
+                                "floor": self._config.confidence_floor,
+                                "issues": list(output.issues),
+                                "question": question,
+                            },
+                        )
+                        answer = self._ask_human(step.step_id, step.primitive, output, question)
+                        clarifications.append({
+                            "step_id": step.step_id,
+                            "primitive": step.primitive,
+                            "confidence": output.confidence,
+                            "issues": list(output.issues),
+                            "question": question,
+                            "answer": answer,
+                        })
+                    else:
+                        review_entry = _human_review(
+                            step.step_id, step.primitive, output, self._config.confidence_floor
+                        )
+                        review_queue.append(review_entry)
+                        self._emit(EventType.HUMAN_REVIEW_REQ, review_entry)
 
         except Exception as exc:
             self._emit(
@@ -157,6 +192,7 @@ class Executor:
             outputs=outputs,
             sources=sources,
             review_queue=review_queue,
+            clarifications=clarifications,
             final_step_id=order[-1].step_id if order else None,
             audit_path=str(self._audit.path) if self._audit else None,
         )
@@ -261,3 +297,33 @@ def _human_review(
         "floor": floor,
         "issues": list(output.issues),
     }
+
+
+def _generate_clarification_question(
+    step_id: str,
+    primitive: str,
+    output: PrimitiveOutput,
+    plan_context: str,
+) -> str:
+    """Use the LLM to produce a targeted clarifying question for the human analyst."""
+    issues_text = "\n".join(f"- {i}" for i in output.issues) if output.issues else "- Low confidence with no specific issues noted"
+    prompt = (
+        f"You are a structured finance analyst assistant helping review an automated extraction.\n\n"
+        f"Step '{step_id}' (primitive: {primitive}) completed with confidence "
+        f"{output.confidence:.2f}, which is below the required threshold.\n\n"
+        f"Issues found:\n{issues_text}\n\n"
+        f"Analysis context: {plan_context[:300]}\n\n"
+        "Write ONE concise clarifying question (1–2 sentences) to ask the human analyst "
+        "that would resolve the uncertainty or help improve the extraction. "
+        "Be specific about what is uncertain. Do not ask yes/no questions — ask for guidance."
+    )
+    try:
+        return complete(prompt, max_tokens=150, temperature=0.3).strip()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to generate clarification question: %s", exc)
+        issues_summary = "; ".join(output.issues[:2]) if output.issues else "low confidence"
+        return (
+            f"Step '{step_id}' has low confidence ({output.confidence:.2f}). "
+            f"Issues: {issues_summary}. "
+            "How should I handle the uncertain results — include them with caveats, skip them, or use a fallback value?"
+        )

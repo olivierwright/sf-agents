@@ -13,7 +13,6 @@ import { SlicePipe } from '@angular/common';
 import { RunStateService, DagStep } from '../services/run-state.service';
 import { LogEntry, LogEntryComponent } from './log-entry.component';
 import { RunEventData } from '../services/sse.service';
-
 const STRATEGIES = [
   { id: 'thorough', label: 'Thorough' },
   { id: 'minimal', label: 'Minimal' },
@@ -95,6 +94,39 @@ function fmtTs(iso: string): string {
             </div>
             <button class="reset-btn" (click)="reset()">✕ Reset</button>
           </div>
+          @if (state.phase() === 'waiting_for_input' && state.pendingClarification(); as clar) {
+            <div class="clarification-box">
+              <div class="clar-header">
+                <span class="clar-icon">🤔</span>
+                <span class="clar-label">Clarification needed</span>
+                <span class="clar-step mono">{{ clar.step_id }}</span>
+                <span class="clar-conf mono">conf {{ clar.confidence.toFixed(2) }}</span>
+              </div>
+              @if (clar.issues.length > 0) {
+                <div class="clar-issues">
+                  @for (iss of clar.issues; track iss) {
+                    <div class="clar-issue">⚠ {{ iss }}</div>
+                  }
+                </div>
+              }
+              <div class="clar-question">{{ clar.question }}</div>
+              <div class="clar-input-row">
+                <textarea
+                  class="clar-ta"
+                  placeholder="Type your answer…"
+                  [(ngModel)]="clarificationDraft"
+                  rows="2"
+                ></textarea>
+                <button
+                  class="clar-submit-btn"
+                  [disabled]="!clarificationDraft.trim()"
+                  (click)="submitClarification()"
+                >
+                  Send ↵
+                </button>
+              </div>
+            </div>
+          }
         }
       </div>
 
@@ -293,6 +325,85 @@ function fmtTs(iso: string): string {
         color: var(--color-danger);
       }
 
+      /* Clarification chat box */
+      .clarification-box {
+        margin-top: var(--sp-3);
+        border: 1px solid var(--color-warn, #e6a817);
+        border-radius: var(--radius-md);
+        background: rgba(230, 168, 23, 0.06);
+        padding: var(--sp-3);
+      }
+      .clar-header {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        margin-bottom: var(--sp-2);
+      }
+      .clar-icon { font-size: 1rem; }
+      .clar-label {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+      }
+      .clar-step, .clar-conf {
+        font-size: 0.625rem;
+        color: var(--text-muted);
+        background: var(--bg-canvas);
+        border-radius: var(--radius-sm);
+        padding: 1px var(--sp-2);
+      }
+      .clar-issues {
+        margin-bottom: var(--sp-2);
+      }
+      .clar-issue {
+        font-size: 0.6875rem;
+        color: var(--color-warn, #e6a817);
+        line-height: 1.5;
+      }
+      .clar-question {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+        line-height: 1.55;
+        margin-bottom: var(--sp-3);
+        font-style: italic;
+      }
+      .clar-input-row {
+        display: flex;
+        gap: var(--sp-2);
+        align-items: flex-end;
+      }
+      .clar-ta {
+        flex: 1;
+        resize: none;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--sp-2) var(--sp-3);
+        font-family: var(--font-sans);
+        font-size: 0.8125rem;
+        background: var(--bg-canvas);
+        color: var(--text-primary);
+        transition: border-color var(--duration-fast);
+      }
+      .clar-ta:focus {
+        outline: none;
+        border-color: var(--color-warn, #e6a817);
+      }
+      .clar-submit-btn {
+        padding: var(--sp-2) var(--sp-4);
+        background: var(--color-warn, #e6a817);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: opacity var(--duration-fast);
+      }
+      .clar-submit-btn:hover:not([disabled]) { opacity: 0.85; }
+      .clar-submit-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
       /* Log stream */
       .log-stream {
         flex: 1;
@@ -341,6 +452,7 @@ export class ExecutionTerminalComponent implements AfterViewChecked {
   @ViewChild('logContainer') private logContainer!: ElementRef<HTMLDivElement>;
   protected state = inject(RunStateService);
   protected strategies = STRATEGIES;
+  protected clarificationDraft = '';
 
   private autoScroll = true;
   private lastEntryCount = 0;
@@ -416,6 +528,17 @@ export class ExecutionTerminalComponent implements AfterViewChecked {
           });
           break;
 
+        case 'human_clarification_needed':
+          entries.push({
+            type: 'review',
+            timestamp: ts,
+            primitive: p['primitive'] as string,
+            primitiveType: primType(p['primitive'] as string),
+            confidence: p['confidence'] as number,
+            content: `Paused for clarification — conf ${(p['confidence'] as number).toFixed(2)} < ${p['floor']}`,
+          });
+          break;
+
         case 'verification_done':
           entries.push({
             type: 'verify',
@@ -458,6 +581,13 @@ export class ExecutionTerminalComponent implements AfterViewChecked {
     if (!el) return;
     const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 60;
     this.autoScroll = atBottom;
+  }
+
+  submitClarification(): void {
+    const answer = this.clarificationDraft.trim();
+    if (!answer) return;
+    this.clarificationDraft = '';
+    this.state.submitClarification(answer);
   }
 
   launchRun(): void {

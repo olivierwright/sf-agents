@@ -26,3 +26,8 @@ audit_logs/
 # Editor
 .vscode/
 .idea/
+
+.api.err.log
+.api.log
+
+.pytest_cache/

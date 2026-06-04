@@ -18,7 +18,7 @@ import logging
 import threading
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Optional
 
 from sf_agents.orchestrator.events import RunEvent
 
@@ -33,11 +33,15 @@ class RunRecord:
     recipe: str = ""
     question: str = ""
     strategy: str = "thorough"
-    status: str = "pending"          # pending | running | done | error
+    status: str = "pending"          # pending | running | waiting_for_input | done | error
     result: dict[str, Any] | None = None
     error: str | None = None
     queue: asyncio.Queue = field(default_factory=lambda: asyncio.Queue(maxsize=256))
     loop: asyncio.AbstractEventLoop | None = None
+    # Human-in-the-loop: pause/resume
+    clarification_event: threading.Event = field(default_factory=threading.Event)
+    clarification_answer: Optional[str] = None
+    pending_clarification: Optional[dict[str, Any]] = None
 
     def to_status(self) -> RunStatus:
         return RunStatus(

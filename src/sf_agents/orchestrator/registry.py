@@ -73,21 +73,27 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     """
     from ..primitives.analyzers.cashflow_anomaly import CashflowAnomalyAnalyzer
     from ..primitives.analyzers.claim_vs_collateral import ClaimVsCollateral
+    from ..primitives.analyzers.code_gen import CodeGenAnalyzer
     from ..primitives.analyzers.consistency import ConsistencyAnalyzer
     from ..primitives.analyzers.covenant_compliance import CovenantComplianceAnalyzer
     from ..primitives.analyzers.definition_comparator import DefinitionComparator
+    from ..primitives.analyzers.dynamic_analyzer import DynamicAnalyzer
     from ..primitives.analyzers.general_analyzer import GeneralAnalyzer
     from ..primitives.analyzers.rating_action import RatingActionAnalyzer
+    from ..primitives.analyzers.tape_greencheck import TapeGreencheckAnalyzer
+    from ..primitives.connectors.auto import AutoConnector
     from ..primitives.connectors.investor_report import InvestorReportConnector
     from ..primitives.connectors.loan_tape import LoanTapeConnector
     from ..primitives.connectors.pdf_document import PdfDocumentConnector
     from ..primitives.connectors.prospectus import ProspectusConnector
     from ..primitives.connectors.remittance_file import RemittanceFileConnector
     from ..primitives.connectors.text import TextConnector
+    from ..primitives.executors.python_runner import PythonRunnerExecutor
     from ..primitives.extractors.covenants import CovenantExtractor
     from ..primitives.extractors.definition_extractor import DefinitionExtractor
     from ..primitives.extractors.general_extractor import GeneralExtractor
     from ..primitives.extractors.locator import LocatorExtractor
+    from ..primitives.extractors.schema_inference import SchemaInferenceExtractor
     from ..primitives.extractors.table_extractor import TableExtractor
     from ..primitives.extractors.waterfall import WaterfallExtractor
     from ..primitives.validators.esma_schema import EsmaSchemaValidator
@@ -100,6 +106,7 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     registry.register(lambda hook: LoanTapeConnector(audit_hook=hook))
     registry.register(lambda hook: RemittanceFileConnector(audit_hook=hook))
     registry.register(lambda hook: TextConnector(audit_hook=hook))
+    registry.register(lambda hook: AutoConnector(audit_hook=hook))
     # Validators
     registry.register(lambda hook: EsmaSchemaValidator(audit_hook=hook))
     # Extractors (domain-specific)
@@ -110,6 +117,7 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     registry.register(lambda hook: LocatorExtractor(llm=llm, audit_hook=hook))
     registry.register(lambda hook: GeneralExtractor(llm=llm, audit_hook=hook))
     registry.register(lambda hook: TableExtractor(llm=llm, audit_hook=hook))
+    registry.register(lambda hook: SchemaInferenceExtractor(llm=llm, audit_hook=hook))
     # Analyzers (domain-specific)
     registry.register(lambda hook: DefinitionComparator(llm=llm, audit_hook=hook))
     registry.register(lambda hook: ClaimVsCollateral(llm=llm, audit_hook=hook))
@@ -119,4 +127,9 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     # Analyzers (general-purpose)
     registry.register(lambda hook: GeneralAnalyzer(llm=llm, audit_hook=hook))
     registry.register(lambda hook: ConsistencyAnalyzer(llm=llm, audit_hook=hook))
+    registry.register(lambda hook: TapeGreencheckAnalyzer(audit_hook=hook))
+    registry.register(lambda hook: CodeGenAnalyzer(llm=llm, audit_hook=hook))
+    registry.register(lambda hook: DynamicAnalyzer(llm=llm, audit_hook=hook))
+    # Executors
+    registry.register(lambda hook: PythonRunnerExecutor(audit_hook=hook))
     return registry

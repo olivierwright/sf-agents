@@ -256,6 +256,215 @@ def _build_fallback_answer(question: str, outputs: dict) -> str:
     return "\n".join(lines) if len(lines) > 1 else ""
 
 
+def _summarise_assessments(payload: dict) -> str:
+    """Compact representation of a claim_vs_collateral or similar assessments payload."""
+    assessments = payload.get("assessments", []) or []
+    if not assessments:
+        return "(no assessments)"
+
+    by_verdict: dict[str, list[dict]] = {}
+    for a in assessments:
+        v = a.get("verdict", "unknown")
+        by_verdict.setdefault(v, []).append(a)
+
+    lines = [f"CLAIM ASSESSMENTS ({len(assessments)} claims):"]
+    for verdict in ("supported", "partially supported", "not supported", "not verifiable from data", "unknown"):
+        items = by_verdict.get(verdict, [])
+        if not items:
+            continue
+        lines.append(f"  {verdict.upper()} ({len(items)})")
+        for item in items[:4]:
+            rationale = (item.get("rationale") or "")[:120]
+            lines.append(f"    • {item.get('claim','?')}: {rationale}")
+
+    # Include key tape_facts stats from the first few assessments
+    seen_cols: set[str] = set()
+    for a in assessments[:5]:
+        for col, stats in (a.get("tape_facts") or {}).items():
+            if col in seen_cols or not isinstance(stats, dict):
+                continue
+            seen_cols.add(col)
+            if "distribution" in stats:
+                dist = stats["distribution"]
+                top = sorted(dist.items(), key=lambda x: -x[1])[:6]
+                lines.append(f"  TAPE {col}: {dict(top)}")
+            elif "mean" in stats:
+                lines.append(
+                    f"  TAPE {col}: n={stats.get('n')}, "
+                    f"min={stats.get('min')}, mean={stats.get('mean')}, max={stats.get('max')}"
+                )
+
+    # Data quality flags if present
+    dq_flags = payload.get("data_quality_flags", []) or []
+    for flag in dq_flags[:4]:
+        lines.append(f"  ⚠ DATA QUALITY {flag.get('field','?')}: {flag.get('issue','')[:100]}")
+
+    return "\n".join(lines)
+
+
+def _compact_payload(step_id: str, payload: Any) -> str:
+    """Produce a concise, type-aware text representation of any step payload.
+
+    Replaces the old 800-char blunt cutoff that silently dropped rich data.
+    Every known payload shape is handled; unknown shapes fall back to truncated JSON.
+    """
+    if payload is None:
+        return ""
+    if isinstance(payload, str):
+        return payload[:500]
+    if isinstance(payload, list):
+        return json.dumps(payload[:8], default=str)[:600]
+    if not isinstance(payload, dict):
+        return str(payload)[:400]
+
+    # analyzer.general / synthesise step — use it as the answer skeleton
+    if payload.get("analysis"):
+        findings = "\n".join(f"  • {f}" for f in (payload.get("key_findings") or [])[:8])
+        gaps = "\n".join(f"  ⚠ {g}" for g in (payload.get("gaps") or [])[:5])
+        text = f"ANALYSIS:\n{str(payload['analysis'])[:1800]}"
+        if findings:
+            text += f"\nKEY FINDINGS:\n{findings}"
+        if gaps:
+            text += f"\nGAPS:\n{gaps}"
+        return text
+
+    # analyzer.dynamic / executor.python result
+    if "code_used" in payload:
+        answer = payload.get("answer") or payload.get("result")
+        success = payload.get("success", answer is not None)
+        attempts = payload.get("attempts", 1)
+        schema_type = ""
+        if isinstance(payload.get("schema"), dict):
+            schema_type = payload["schema"].get("dataset_type", "")
+        answer_text = json.dumps(answer, default=str)[:1000] if answer is not None else "(no result)"
+        log = payload.get("execution_log", [])
+        log_text = "; ".join(str(e) for e in log[-3:]) if log else ""
+        lines = [f"DYNAMIC ANALYSIS ({'success' if success else 'failed'}, {attempts} attempt(s)):"]
+        if schema_type:
+            lines.append(f"  Dataset: {schema_type}")
+        lines.append(f"  Result: {answer_text}")
+        if log_text:
+            lines.append(f"  Log: {log_text}")
+        return "\n".join(lines)
+
+    # connector.auto metadata
+    if "detected_format" in payload:
+        cols = payload.get("columns", [])
+        return (
+            f"FILE ({payload.get('detected_format','?')}): "
+            f"{payload.get('document','?')} — "
+            f"{payload.get('row_count', payload.get('page_count', '?'))} "
+            f"{'rows' if 'rows' in payload else 'pages'}, "
+            f"{len(cols)} columns"
+        )
+
+    # schema_inference
+    if "dataset_type" in payload and "key_fields" in payload:
+        dt = payload.get("dataset_type", "?")
+        kf = payload.get("key_fields", [])
+        concerns = payload.get("quality_concerns", [])
+        suggested = payload.get("suggested_analyses", [])[:3]
+        lines = [f"SCHEMA: {dt}", f"  Key fields: {kf[:8]}"]
+        if suggested:
+            lines.append(f"  Suggested: {suggested}")
+        if concerns:
+            lines.append(f"  Quality: {concerns[:3]}")
+        return "\n".join(lines)
+
+    # claim_vs_collateral assessments
+    if "assessments" in payload:
+        return _summarise_assessments(payload)
+
+    # extractor.general records
+    if "records" in payload:
+        recs = (payload.get("records") or [])[:15]
+        lines = [f"  {r.get('field','?')}: {str(r.get('value',''))[:100]}" for r in recs]
+        missing = payload.get("fields_missing", [])
+        text = "EXTRACTED:\n" + "\n".join(lines)
+        if missing:
+            text += f"\nMISSING FIELDS: {missing}"
+        return text
+
+    # waterfall steps
+    if "waterfall_steps" in payload:
+        steps = (payload.get("waterfall_steps") or [])[:10]
+        lines = [
+            f"  {s.get('rank','?')}. [{s.get('waterfall_type','?')}] "
+            f"{s.get('beneficiary','')}: {str(s.get('amount_basis',''))[:70]}"
+            for s in steps
+        ]
+        total = len(payload.get("waterfall_steps") or [])
+        return f"WATERFALL ({total} steps, cascades: {payload.get('cascades_found', [])}):\n" + "\n".join(lines)
+
+    # tape_greencheck / compliance results
+    if "results" in payload and "overall_pass_rate" in payload:
+        results = payload.get("results") or []
+        lines = [f"TAPE GREENCHECK (overall pass rate: {payload.get('overall_pass_rate', 0):.1%}):"]
+        for r in results:
+            flag = "[PASS]" if r.get("pass_rate", 0) >= 0.99 else ("[WARN]" if r.get("pass_rate", 0) >= 0.95 else "[FAIL]")
+            lines.append(
+                f"  {flag} {r.get('criterion_name','?')}: "
+                f"{r.get('n_pass',0)}/{r.get('n_applicable',0)} pass "
+                f"({r.get('pass_rate',0):.1%}), {r.get('n_fail',0)} fail, {r.get('n_missing',0)} missing"
+            )
+        dq = payload.get("data_quality_flags") or []
+        for f in dq[:4]:
+            lines.append(f"  [DQ] {f.get('field','?')}: {f.get('issue','')[:80]}")
+        return "\n".join(lines)
+
+    # analyzer.consistency results
+    if "results" in payload and "overall_consistent" in payload:
+        results = payload.get("results") or []
+        ok = payload.get("overall_consistent", True)
+        issues = [r for r in results if not r.get("consistent")]
+        lines = [f"CONSISTENCY CHECK ({'OK' if ok else 'ISSUES FOUND'}):"]
+        if issues:
+            for r in issues[:6]:
+                lines.append(
+                    f"  ✗ {r.get('field','?')} [{r.get('materiality','?')}]: "
+                    f"{str(r.get('discrepancy_description',''))[:100]}"
+                )
+        else:
+            lines.append("  All checked fields consistent.")
+        mat = payload.get("material_issues") or []
+        if mat:
+            lines.append(f"  MATERIAL ISSUES: {mat}")
+        return "\n".join(lines)
+
+    # definition comparisons
+    if "comparisons" in payload:
+        comps = (payload.get("comparisons") or [])[:6]
+        lines = ["DEFINITION COMPARISONS:"]
+        for c in comps:
+            mat = c.get("materiality", "low")
+            flag = "⚠" if mat in ("high", "medium") else "·"
+            lines.append(f"  {flag} {c.get('term','?')} [{mat}]: {str(c.get('rationale',''))[:100]}")
+        return "\n".join(lines)
+
+    # definitions list
+    if "definitions" in payload:
+        defs = (payload.get("definitions") or [])[:10]
+        lines = [f"  {d.get('term','?')}: {str(d.get('definition',''))[:80]}" for d in defs]
+        return f"DEFINITIONS ({len(payload.get('definitions') or [])}):\n" + "\n".join(lines)
+
+    # loan tape summary
+    if "row_count" in payload or "columns" in payload:
+        cols = payload.get("columns", [])
+        green_cols = [c for c in cols if any(kw in c.lower() for kw in ("epc", "energy", "green", "co2", "cfp", "carbon"))]
+        return (
+            f"LOAN TAPE: {payload.get('row_count', len(payload.get('rows', [])))} rows, "
+            f"{len(cols)} columns. Green-related columns: {green_cols[:8]}"
+        )
+
+    # connector pages summary
+    if "pages" in payload and "page_count" in payload:
+        return f"DOCUMENT: {payload.get('document','?')} ({payload.get('page_count','?')} pages)"
+
+    # Fallback: compact JSON
+    text = json.dumps(payload, default=str)
+    return text[:800]
+
+
 def _synthesize_answer(
     question: str,
     outputs: dict,
@@ -269,7 +478,10 @@ def _synthesize_answer(
     gap_summary, and includes these in the prompt so the LLM explains missing
     data honestly rather than ignoring it.
     """
-    # Build a concise summary of extracted outputs (skip huge payloads)
+    # Build a concise summary of extracted outputs using type-aware smart
+    # summarization. The old 800-char blunt cutoff silently dropped the richest
+    # payloads (claim assessments, extracted records). Now every step contributes
+    # something meaningful to the synthesis context.
     output_summary = []
     gap_notes: list[str] = []
 
@@ -283,12 +495,9 @@ def _synthesize_answer(
                 gap_notes.append(f"[{step_id}] {gap_summary}")
             continue  # don't add an empty payload to output_summary
 
-        if isinstance(payload, dict) and len(str(payload)) < 800:
-            output_summary.append(f"[{step_id}]: {json.dumps(payload, default=str)[:600]}")
-        elif isinstance(payload, list) and len(payload) <= 10:
-            output_summary.append(f"[{step_id}]: {json.dumps(payload, default=str)[:600]}")
-        elif isinstance(payload, str):
-            output_summary.append(f"[{step_id}]: {payload[:400]}")
+        summary = _compact_payload(step_id, payload)
+        if summary:
+            output_summary.append(f"[{step_id}]: {summary}")
 
     clar_text = ""
     if clarifications:
@@ -342,14 +551,31 @@ def _synthesize_answer(
             "Do NOT speculate on values for missing data."
         )
 
+    # Separate any analyzer.general "ANALYSIS:" sections — use them as the
+    # primary answer skeleton rather than treating them as just another data item.
+    skeleton_parts = [s for s in output_summary if s.startswith("[") and "ANALYSIS:" in s]
+    data_parts = [s for s in output_summary if s not in skeleton_parts]
+
+    skeleton_section = ""
+    if skeleton_parts:
+        skeleton_section = (
+            "\n\nPRELIMINARY ANALYSIS (use this as your structural skeleton and expand it "
+            "with specific numbers from the data below — do NOT ignore or contradict it):\n"
+            + "\n\n".join(skeleton_parts)
+        )
+
     prompt = (
         "You are a structured finance analyst. Using the extracted data below, "
         "write a clear, well-structured answer to the investor's question. "
-        "Be specific, use numbers where available, and cite sources where relevant. "
-        "Aim for 3–5 focused paragraphs. Do not include preamble like 'Based on the analysis…'.\n\n"
+        "Be specific — use exact numbers, percentages, and values from the data. "
+        "IMPORTANT: if claim assessment verdicts, tape statistics (EPC distribution, "
+        "PED mean/min/max), or compliance pass rates appear in the data, you MUST cite "
+        "those specific numbers in your answer — do not replace them with generic phrases "
+        "like 'may contain' or 'if the tape includes'. "
+        "Aim for 3–6 focused paragraphs. No preamble.\n\n"
         f"QUESTION: {question}\n\n"
-        f"EXTRACTED DATA:\n" + "\n".join(output_summary) +
-        clar_text + cite_text + gap_text
+        f"EXTRACTED DATA:\n" + "\n\n".join(data_parts) +
+        skeleton_section + clar_text + cite_text + gap_text
     )
     if tracer:
         tracer.log_step_start(

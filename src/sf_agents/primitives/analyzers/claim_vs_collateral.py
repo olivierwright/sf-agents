@@ -220,11 +220,15 @@ class ClaimVsCollateral(BasePrimitive):
                 )
 
         confidence = round(scored_ok / len(routed), 4) if routed else 1.0
+        dq_flags = _data_quality_flags(present_fields, rows)
+        for flag in dq_flags:
+            issues.append(f"DATA QUALITY — {flag['field']}: {flag['issue']}")
         return PrimitiveOutput(
             payload={
                 "claim_source": claim_source,
                 "tape_document": tape_document,
                 "assessments": assessments,
+                "data_quality_flags": dq_flags,
             },
             citations=citations,
             confidence=confidence,
@@ -232,6 +236,7 @@ class ClaimVsCollateral(BasePrimitive):
             metadata={
                 "present_green_fields": present_fields,
                 "row_count": len(rows),
+                "data_quality_flags": len(dq_flags),
             },
         )
 
@@ -330,6 +335,63 @@ class ClaimVsCollateral(BasePrimitive):
             else:
                 records = [raw]
         return {str(r.get("claim", "")).strip().lower(): r for r in records}
+
+
+def _data_quality_flags(
+    present_fields: list[str], rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Return data quality issues found in the green tape fields."""
+    flags: list[dict[str, Any]] = []
+
+    if "primary_energy_demand_kwh_m2" in present_fields:
+        nums = [float(r["primary_energy_demand_kwh_m2"]) for r in rows
+                if _is_number(r.get("primary_energy_demand_kwh_m2"))]
+        if nums:
+            negatives = [v for v in nums if v < 0]
+            if negatives:
+                flags.append({
+                    "field": "primary_energy_demand_kwh_m2",
+                    "issue": (
+                        f"{len(negatives)} negative PED values (min={min(negatives):.0f}). "
+                        "May be net-positive-energy buildings or imputation artefacts."
+                    ),
+                    "count": len(negatives),
+                    "sample_values": sorted(negatives)[:3],
+                })
+            very_high = [v for v in nums if v > 300]
+            if very_high:
+                flags.append({
+                    "field": "primary_energy_demand_kwh_m2",
+                    "issue": f"{len(very_high)} PED values above 300 kWh/m² (max={max(very_high):.0f}).",
+                    "count": len(very_high),
+                    "sample_values": sorted(very_high, reverse=True)[:3],
+                })
+
+    if "epc_label" in present_fields:
+        unknown = sum(
+            1 for r in rows
+            if str(r.get("epc_label", "") or "").strip().lower() in ("unknown", "", "n/a", "na")
+        )
+        if unknown:
+            flags.append({
+                "field": "epc_label",
+                "issue": f"{unknown} loans with unknown/missing EPC label.",
+                "count": unknown,
+                "sample_values": [],
+            })
+        non_green = sum(
+            1 for r in rows
+            if str(r.get("epc_label", "") or "").strip().upper() in ("B", "C", "D", "E", "F", "G")
+        )
+        if non_green:
+            flags.append({
+                "field": "epc_label",
+                "issue": f"{non_green} loans with EPC labels below A (B–G).",
+                "count": non_green,
+                "sample_values": [],
+            })
+
+    return flags
 
 
 def _is_number(value: Any) -> bool:

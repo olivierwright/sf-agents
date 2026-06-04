@@ -1,0 +1,15 @@
+sf-agents
+Copyright 2026 Hypoport BV and the sf-agents contributors
+
+This product includes software developed as Hypoport's entry for the
+Structured Finance Hackathon 2026 (FINOS, Barcelona).
+
+The project is offered under the Apache License, Version 2.0, and is intended
+to be governed under a neutral, vendor-independent open-governance model.
+Contributions are welcome from any organisation; no single contributor holds
+special control over the direction of the project beyond the rights granted by
+the Apache 2.0 license and the project's published governance documents.
+
+The sample data set under `Sample Data/` describes a synthetic deal
+("Green Lion 2026-1"). It is synthetic and provided for demonstration and
+testing only; it does not represent any real borrower, loan, or transaction.

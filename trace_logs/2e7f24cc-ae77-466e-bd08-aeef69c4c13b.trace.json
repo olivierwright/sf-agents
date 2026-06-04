@@ -1,0 +1,804 @@
+{
+  "run_id": "2e7f24cc-ae77-466e-bd08-aeef69c4c13b",
+  "question": "Can you give a quick summary of the deal I might want to invest",
+  "strategy": "minimal",
+  "started_at": "2026-06-04T11:43:03.336740+00:00",
+  "finished_at": "2026-06-04T11:45:04.005498+00:00",
+  "duration_ms": 120668.8,
+  "plan": {
+    "source": "planner",
+    "explanation": "To give a quick deal summary, we load the prospectus (the primary deal document) and the investor report (for current performance), then extract key structural terms from each. This gives a cited, verified overview of the deal's structure and current state with minimal steps.",
+    "steps": [
+      {
+        "step_id": "load_prospectus",
+        "primitive": "connector.prospectus",
+        "args": {
+          "path": "E:\\REPOS\\sf-agents\\Sample Data\\green-lion-2026-1-prospectus.pdf"
+        },
+        "depends_on": []
+      },
+      {
+        "step_id": "load_investor_report",
+        "primitive": "connector.investor_report",
+        "args": {
+          "path": "E:\\REPOS\\sf-agents\\Sample Data\\monthly-investor-report-green-lion-2026-1-april-2026.pdf"
+        },
+        "depends_on": []
+      },
+      {
+        "step_id": "extract_prospectus_terms",
+        "primitive": "extractor.definitions",
+        "args": {
+          "pages": {
+            "$from": "load_prospectus",
+            "path": "payload.pages"
+          },
+          "document": {
+            "$from": "load_prospectus",
+            "path": "payload.document"
+          },
+          "terms": [
+            "issuer",
+            "collateral",
+            "tranche",
+            "note class",
+            "credit enhancement",
+            "reserve fund",
+            "interest rate",
+            "maturity",
+            "originator",
+            "servicer",
+            "green bond",
+            "eligible assets",
+            "overcollateralisation"
+          ]
+        },
+        "depends_on": [
+          "load_prospectus"
+        ]
+      },
+      {
+        "step_id": "extract_investor_report_terms",
+        "primitive": "extractor.definitions",
+        "args": {
+          "pages": {
+            "$from": "load_investor_report",
+            "path": "payload.pages"
+          },
+          "document": {
+            "$from": "load_investor_report",
+            "path": "payload.document"
+          },
+          "terms": [
+            "pool balance",
+            "arrears",
+            "defaults",
+            "prepayment rate",
+            "note balance",
+            "credit enhancement",
+            "reserve fund",
+            "collections"
+          ]
+        },
+        "depends_on": [
+          "load_investor_report"
+        ]
+      },
+      {
+        "step_id": "extract_waterfall",
+        "primitive": "extractor.waterfall",
+        "args": {
+          "pages": {
+            "$from": "load_prospectus",
+            "path": "payload.pages"
+          },
+          "document": {
+            "$from": "load_prospectus",
+            "path": "payload.document"
+          }
+        },
+        "depends_on": [
+          "load_prospectus"
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "load_prospectus",
+      "primitive": "connector.prospectus",
+      "version": "0.1.0",
+      "input_args": {
+        "path": "E:\\REPOS\\sf-agents\\Sample Data\\green-lion-2026-1-prospectus.pdf"
+      },
+      "output": {
+        "payload": {
+          "document": "green-lion-2026-1-prospectus.pdf",
+          "pages": [
+            {
+              "page": 1,
+              "text": " \n \ni: three-month EURIBOR will be set on each Interest Determination Date. The first Interest Determination Date is two Business Days before the Closing Date. The Interest Rate on the Class A Notes in respect of the \nfirst Interest Period shall be determined by reference to a straight line interpolation of three-month EURIBOR and six-month EURIBOR. \n \nPROSPECTUS DATED 27 FEBRUARY 2026 \nGREEN LION 2026-1 B.V. as Issuer \n(incorporated with limited liability in The Netherlands), with Legal Entity Identifier 724500T6FVI564GJ6879. The Securitisation transaction unique \nidentifier is 3TK20IVIUJ8J3ZU0QE75N202601. \nThis document constitutes a prospectus (the \"Prospectus\") within the meaning of Article 3(3) of Regulation (EU) 2017/1129 of the European Parliament and of the Council of 14 June 2017 (as amended, the \"EU Prospectus Regulation\"). \nThis Prospectus has been approved by the Dutch Authority for the Financial Markets (Stichting Autoriteit Financi\u00eble Markten) (the AFM), as competent authority under the EU Prospectus Regulation. The AFM only approves this Prospectus \nas meeting the standards of completeness, comprehensibility and consistency imposed by the EU Prospectus Regulation. Such approval should not be considered as an endorsement of the Issuer and the quality of the securities that are the \nsubject of this Prospectus and investors should make their own assessment as to the suitability of investing in the Notes. \nThis Prospectus is valid for use only by the Issuer for a period of up to 12 months after its approval by the AFM and shall expire on 27 February 2027, or when trading on a regulated market begins, whichever occurs earlier. \nIt is noted that the obligation to supplement the Prospectus in the event of significant new factors, material mistakes or material inaccuracies does not apply when the Prospectus is no longer valid. For this purpose, \"valid\" means valid for \nadmissions to trading on a regulated market of the Notes and the obligation to supplement the Prospectus is only required within its period of validity between the time when the Prospectus is approved and the time when trading on a regulated \nmarket begins. The language of this Prospectus is English. Certain legislative references and technical terms have been cited in their original language in order that the correct technical meaning may be ascribed to them under applicable \nlaw. Unless otherwise indicated in this Prospectus or the context otherwise requires, capitalised terms used in this Prospectus have the meaning ascribed thereto in Section 9.1 (Definitions) of this Prospectus. The principles of interpretation \nset out in Section 9.2 ( Interpretation) of this Prospectus shall apply to this Prospectus. The date of this Prospectus is 27 February 2026. \n Class A Class B Class C \nPrincipal Amount: EUR 1,000,000,000 EUR 53,100,000 EUR 10,500,000 \nIssue Price: 100% 100% 100% \nInterest rate up to and including the \nFirst Optional Redemption Date:i 3m EURIBOR + 0.43 per cent.  N/A N/A \nInterest rate after First Optional \nRedemption Date: 3m EURIBOR + 0.86 per cent. N/A N/A \nInterest Accrual: Act/360 N/A N/A \nExpected Ratings (Fitch/Moody's): AAA (sf) / Aaa (sf) Not rated Not rated \nFirst Optional Redemption Date: \nNotes Payment Date falling in \nJanuary 2031 \nNotes Payment Date falling in January 2031 Notes Payment Date falling in January 2031 \nFinal Maturity Date: Notes Payment Date falling in \nJanuary 2062 \nNotes Payment Date falling in January 2062 Notes Payment Date falling in January 2062 "
+            },
+            {
+              "page": 2,
+              "text": "- ii - \n \n \nING Bank N.V. \nas Seller \n(incorporated as a public company with limited liability) (naamloze vennootschap) under Dutch law) \nUnless otherwise indicated in this Prospectus or the context otherwise requires, capitalised terms used in this Prospectus have the meanings ascribed thereto in Section 9.1 (Definitions) of this Prospectus and the \nprinciples of interpretation set out in Section 9.2 ( Interpretation) of this Prospectus shall apply to this Prospectus. Unless indicated otherwise, the capitalised terms conform to the RMBS Standard. \nClosing Date The Issuer will issue the Notes in the classes set out above on 3 March 2026 (or such later date as may be agreed between the Issuer and the Seller (the \"Closing Date\")). \nUnderlying Assets The Issuer will make payments on the Notes in accordance with the relevant Priority of Payments from, among other things, payments of principal and interest received from a portfolio \nsolely comprising owner-occupied mortgage loans originated by the Seller (the \" Mortgage Loans\") and secured over residential properties located in The Netherlands. Legal title to the \nresulting receivables (the \"Mortgage Receivables\") will be assigned by the Seller to the Issuer on the Closing Date and thereafter, in respect of any New Mortgage Receivable, subject to \ncertain conditions being met, on each applicable Transfer Date during the Revolving Period. See Section 6.2 (Description of Mortgage Loans). \nInvestors can access static and dynamic data on the historical prepayment, arrears, default and loss performance for a period of more than 5 years prior to the Closing Date for the Mortgage \nReceivables by means of the securitisation transaction described in this Prospectus on the website of European Datawarehouse GmbH at https://eurodw.eu. This website and the contents \nthereof do not form part of this Prospectus. This data has not been audited by any auditor. \nSecurity for the Notes The Noteholders will, together with the other Secured Creditors, benefit from security rights created in favour of the Security Trustee over, among other things, the Mortgage Receivables. \nSee Condition 5 (Security). \nDenomination The Notes will have a minimum denomination of EUR 100,000 each and integral multiples of EUR 1,000 thereafter. \nForm The Notes will initially be represented by Temporary Global Notes in global bearer form. Interests in each Temporary Global Note will be exchangeable (following certification) of non-\nU.S. beneficial ownership not earlier than the Exchange for interests in a Permanent Global Note in global bearer form. Interests in the Global Notes will only in limited circumstances be \nexchangeable for Notes in definitive form.  \nInterest The Class A Notes will carry a floating rate of interest as set out above, payable quarterly in arrear on each Notes Payment Date. No interest will be payable on the Class B Notes and the \nClass C Notes. See Condition 7 (Interest). \nRedemption \nProvisions \nPayments of principal on the Notes will be made quarterly in arrear on each Notes Payment Date in the circumstances set out in, and subject to and in accordance with, the Conditions. The \nNotes will mature on the Final Maturity Date. Investors should note that Available Principal Funds will, subject to certain conditions being met, be applied, up to (and including) the \nRevolving Period End Date, towards payment of the purchase price for the New Mortgage Receivables (including Further Advance Receivables) up to the New Mortgage Receivables \nAvailable Amount or to make a reservation for such purpose which will form part of the Reserved Amount(s). On the First Optional Redemption Date and each succeeding Optional \nRedemption Date and in certain other circumstances, the Issuer will have the option to redeem all of the Notes. See Condition 8 (Final Redemption, Mandatory Redemption in part, Optional \nRedemption, Purchase and Cancellation). \nSubscription and Sale The Joint Lead Managers have agreed to subscribe and purchase the Class A Notes on the Closing Date, subject to certain conditions precedent being satisfied. The Seller has agreed to \npurchase the Class B Notes and the Class C Notes on the Closing Date, subject to certain conditions precedent being satisfied.  "
+            },
+            {
+              "page": 3,
+              "text": "- iii - \n \n \nCredit Rating \nAgencies \nFitch Ratings Ireland Limited (\"Fitch\") is established in the European Union and is registered under the CRA Regulation. As such, Fitch Ratings Ireland Limited is included in the list of \ncredit rating agencies published by the European Securities and Markets Authority on its website (at http://www.esma.europa.eu/page/List-registered-and-certified-CRAs) in accordance \nwith the CRA Regulation. Fitch Ratings Ireland Limited is not established in the United Kingdom. However, the rating(s) issued by Fitch Ratings Ireland Limited have been endorsed by \nFitch Ratings Limited in accordance with Regulation (EC) No. 1060/2009 as it forms part of domestic law of the United Kingdom by virtue of the EUWA (the \" UK CRA Regulation\") \nand have not been withdrawn, suspended, revised or assigned a negative outlook or put on negative watch. As such, the ratings issued by Fitch Ratings Ireland Limited may be used for \nregulatory purposes in the United Kingdom in accordance with the UK CRA Regulation. Moody's Investors Service Espa\u00f1a S.A. (\"Moody's\") is established in the European Union and is \nregistered under the CRA Regulation. As such, Moody's Investors Service Espa\u00f1a S.A. is included in the list of credit rating agencies published by the European Securities and Markets \nAuthority on its website (at http://www.esma.europa.eu/page/List-registered-and-certified-CRAs) in accordance with the CRA Regulation. Moody's Service Espa\u00f1a S.A. is not established \nin the United Kingdom. However, the rating(s) issued by Moody's Investors Service Espa\u00f1a S.A. have been endorsed by Moody's Investor Service Ltd. in accordance with the UK CRA \nRegulation and have not been withdrawn, suspended, revised or assigned a negative outlook or put on negative watch. As such, the ratings issued by Moody's Investors Service Espa\u00f1a S.A. \nmay be used for regulatory purposes in the United Kingdom in accordance with the UK CRA Regulation. \nCredit Ratings The ratings assigned by Fitch address the likelihood of (a) timely payment of interest due to the Class A Noteholders and (b) full payment of principal to the Noteholders by a date that is \nnot later than the Final Maturity Date. The credit rating assigned by Moody's addresses the expected loss to a Noteholder in proportion to the initial principal amount of the Class of Notes \nheld by such Noteholder by the Final Maturity Date. The assignment of ratings to the Class A Notes is not a recommendation to invest in the Class A Notes. Any credit rating assigned to \nthe Class A Notes may be reviewed, revised, suspended, withdrawn or assigned a given outlook at any time. Any such review, revision, suspension or withdrawal could adversely affect \nthe market value of the Class A Notes. \nListing Application has been made to list the Class A Notes on Euronext Amsterdam, a regulated market of Euronext Amsterdam N.V. This Prospectus has been approved by The Netherlands \nAuthority for the Financial Markets (Stichting Autoriteit Financi\u00eble Markten) and constitutes a prospectus for the purposes of the EU Prospectus Regulation. \nEurosystem Eligibility The Class A Notes are intended to be held in a manner which will allow Eurosystem eligibility. This means that the Class A Notes are intended upon issue to be deposited with Euroclear \nor Clearstream, Luxembourg as common safekeeper. It does not necessarily mean that the Class A Notes will be recognised as Eurosystem Eligible Collateral either upon issue or at any or \nall times during their life. Such recognition will depend upon satisfaction of the Eurosystem eligibility criteria. The other Classes of Notes are not intended to be held in a manner which \nallows Eurosystem eligibility and will be deposited with a common safekeeper acting on behalf of Euroclear and Clearstream, Luxembourg. The other Classes of Notes will not be listed.  \nLimited recourse \nobligations \nThe Notes will be limited recourse obligations of the Issuer only and will not be obligations or responsibilities of, or guaranteed by, any of the other parties to the Transaction Documents. \nThe Issuer will have limited sources of funds available. See Section 1 (Risk Factors). \nSubordination The Class B Notes and the Class C Notes are subordinated to the Class A Notes. See Section 4.1 (Terms and Conditions) and Section 5 (Credit Structure). \nEU and UK Risk \nRetention \nRequirements  \nThe Seller will retain, as 'originator' within the meaning of Article 2(3)(a) of Regulation (EU) 2017/2402 (as amended) (the \"EU Securitisation Regulation\") and Article 3(1) of SR 2024, \non an ongoing basis, a material net economic interest of not less than five (5) per cent. in the securitisation, in accordance with Article 6(3)(d) of the EU Securitisation Regulation (which \ndoes not take into account any relevant national measures) and SECN 5.2.8R(1)(d) (as if applicable to the Seller and as interpreted and in force as at the Closing Date). There is no obligation \nto comply with any amendments to the UK Risk Retention Rules (including any applicable UK technical standards, guidance or policy instruments introduced in relation thereto) after the \nClosing Date. As at the Closing Date, such material net economic interest will be satisfied by holding the Class B Notes. See Section 4.4 (Regulatory and Industry Compliance) for more \ndetail.  \nU.S. Risk Retention \nRequirements \nThe Seller intends to rely on an exemption provided for in Section 20 of Regulation RR (17 C.F.R. Part 246) implementing the risk retention requirements of Section 15G of the US \nSecurities Exchange Act of 1934, as amended (the \"U.S. Risk Retention Rules\") regarding non-U.S. transactions that meet certain requirements. Except as set forth below in Section 4.3 \n(Subscription and Sale), the Notes may not be purchased by any person except for persons that are not \"U.S. Persons\" as defined in the U.S. Risk Retention Rules (\" Risk Retention U.S. \nPersons\"). Prospective investors should note that the definition of \"U.S. Person\" in the U.S. Risk Retention Rules is different from the definition of \"U.S. Person\" in Regulation S. "
+            },
+            {
+              "page": 4,
+              "text": "- iv - \n \n \nSimple, Transparent \nand Standardised \nSecuritisation  \nOn the Closing Date, it is intended that a notification will be submitted to ESMA, DNB and AFM by the Seller, in its capacity as originator under the EU Securitisation Regulation, in \naccordance with Article 27 of the EU Securitisation Regulation, confirming that the requirements of Articles 19 to 22 of the EU Securitisation Regulation for designation as EU STS \nSecuritisation (the \"EU STS Requirements\") have been satisfied with respect to the Notes (such notification, the \" EU STS Notification \"). The EU STS Notification, once notified to \nESMA, will be available for download on the ESMA STS Register website at https://www.esma.europa.eu/policy-activities/securitisation/simple-transparent-and-standardised-sts-\nsecuritisation (or its successor website) (the \"ESMA STS Register Website\"). For the avoidance of doubt, the ESMA STS Register Website and the contents thereof do not form part of \nthis Prospectus. The EU STS Securitisation status of the Notes is not static and investors should verify the current status on the ESMA STS Register Website, which will be updated where \nthe Notes are no longer considered to be EU STS following a decision of competent authorities or a notification by the Seller, in its capacity as originator under the EU Securitisation \nRegulation. In relation to the EU STS Notification, the Seller, in its capacity as originator under the EU Securitisation Regulation, has been designated as the first point of contact for \ninvestors and competent authorities. The Seller, in its capacity as originator under the EU Securitisation Regulation has used the services of Prime Collateralised Securities (PCS) EU SAS \n(\"PCS\") (the \"STS Verification Agent\"), a third party authorised pursuant to Article 28 of the EU Securitisation Regulation in connection with an assessment of the compliance of the \nNotes with the requirements of Articles 19 to 22 of the EU Securitisation Regulation (the \" STS Verification\"). It is expected that the STS Verification prepared by the STS Verification \nAgent will be available on its website at https://www.pcsmarket.org/transactions/. For the avoidance of doubt, the website of the STS Verification Agent and the contents of that website \ndo not form part of this Prospectus. Investors should note that no notification will be submitted under SECN 2.5, and that the Notes will therefore not meet the requirements to qualify as \nan STS securitisation under the UK Securitisation Framework.  \nVolcker Rule The Issuer is not, and solely after giving effect to any offering and sale of the Notes and the application of the proceeds thereof will not be, a \"covered fund\" for the purposes of the \nregulations adopted under Section 13 of the Bank Holding Company Act of 1956, as amended (commonly known as the Volcker Rule). In reaching this conclusion, although other statutory \nor regulatory exclusions and/or exemptions under the Investment Company Act of 1940, as amended (the \" Investment Company Act \") and under the Volcker Rule and its related \nregulations may be available, the Issuer has relied on the determinations that (i) the Issuer would satisfy all of the elements of the exemption from registration under the Investment Company \nAct provided by Section 3(c)(5)(C) thereunder, and, accordingly, (ii) the Issuer may rely on the exemption from the definition of a \"covered fund\" under the Volcker Rule made available \nto entities that do not rely solely on Section 3(c)(1) or Section 3(c)(7) of the Investment Company Act for their exclusion and/or exemption from registration under the Investment Company \nAct. \nEU Benchmarks \nRegulation \nAmounts payable on the Class A Notes are calculated by reference to Euribor, which is provided by the European Money Markets Institute (\"EMMI\"). Euribor is an interest rate benchmark \nwithin the meaning of Regulation (EU) 2016/1011) (as amended, the \"EU Benchmarks Regulation\"). As at the date of this Prospectus, EMMI, in respect of Euribor appears on the register \nof administrators and benchmarks established and maintained by ESMA pursuant to Article 36 of the EU Benchmarks Regulation.  \nSignificant Investor It is expected that the Seller and/or its respective affiliates will on the Closing Date, purchase the Class B Notes and the Class C Notes (or substantial part(s) thereof). \nUse of proceeds \u2013 \nSecured Green \nCollateralised Notes \nThe Issuer will use the net proceeds from the issue of the Secured Green Collateralised Notes exclusively to purchase Mortgage Receivables pursuant to the Mortgage Receivables Purchase \nAgreement. An amount equal to EUR 811,681.42 will be deposited in the Construction Deposit Account in order to reflect those parts of the Mortgage Loans comprising Construction \nDeposits.  \nStatus of Secured \nGreen Collateralised \nNotes as \"green bond\"  \nThe Secured Green Collateralised Notes are intended to be aligned with the Green Bond Principles, as 'Secured Green Collateral Bond' as defined in the Green Bond Principles in effect as \nat the date of this Prospectus. The Green Bond Principles are voluntary process guidelines that include four core components: (i) use of proceeds, (ii) process for project evaluation and \nselection, (iii) management of proceeds and (iv) reporting. The Green Bond Principles are further described in Section 6.6 (Green Bond Principles and Energy Performance Certificates). \nThe Secured Green Collateralised Notes are not a \"European green bond\" or \"EuGB\" under the EUGBS Regulation and do not comply with the requirements set out therein. Each of the \nMortgage Receivables (including those relating to Mortgage Loans where part of the loan comprises a Construction Deposit) will be required to meet, among other things, the Eligibility \nCriteria and the Green Eligibility Criteria as at the relevant Transfer Date of such Mortgage Receivable, meaning, in relation to the Initial Portfolio, the Initial Cut-Off Date and, in relation \nto Mortgage Loans under which New Mortgage Receivables arise, the relevant Cut-Off Date. In order to seek alignment with Article 3 of the EU Taxonomy Regulation, including by virtue \nof alignment with the EU Taxonomy TSC building requirement, the Green Eligibility Criteria require that the Mortgaged Asset, on which the relevant Mortgage Loan from which such \nMortgage Receivable arises is secured, is assigned: (1) if it is built before 1 January 2021: a definitive Energy Performance Certificate of at least, \"A\" (based on an energy performance \ndemand determination method prescribed or permitted under applicable legislation at the relevant time that the Energy Performance Certificate was issued or otherwise referred to in the \nEnergy Performance Certificate, whereby (information in respect of) the most recent Energy Performance Certificate available to the Seller on the relevant Cut-Off Date shall be used to "
+            },
+            {
+              "page": 5,
+              "text": "- v - \n \n \nmonitor compliance with the Green Eligibility Criteria); (2) if it is built after 31 December 2020, a definitive Energy Performance Certificate confirming a maximum primary energy \ndemand (PED) of: (i) 27kWh/m2 per year if the Mortgaged Asset is a residential house (woning) or (ii) 45kWh/m2 per year if the Mortgaged Asset is a residential apartment (appartement) \n(in each case based on an energy performance determination method prescribed or permitted under applicable legislation at the relevant time that the Energy Performance Certificate was \nissued or otherwise referred to in the Energy Performance Certificate, whereby (information in respect of) the most recent Energy Performance Certificate available to the Seller on the \nrelevant Cut-Off Date shall be used to monitor compliance with the Green Eligibility Criteria), and provided that such assigned Energy Performance Certificate has not expired on the \nrelevant Cut-Off Date immediately prior to the Transfer Date of such Mortgage Receivable. In addition, the Eligibility Criteria include that the relevant Mortgaged Asset has been screened \nby the Seller by applying the Seller DNSH model and was scored as not sensitive in accordance with the Seller DNSH model, and by adopting the Seller's Country Risk MSS Approach, \nthe Issuer believes the Mortgaged Assets meet the minimum safeguards requirements (to the extent applicable) in Articles 3 and 18 of the EU Taxonomy Regulation. \n \nInvesting in the Notes involves certain risks. The principal risk factors that may affect the abilities of the Issuer to fulfil its obligations under the Notes are discussed in Section 1 (Risk Factors) of this \nProspectus. \nArranger  \nING Bank N.V. \n \nJoint Lead Managers \nING BofA Securities Lloyds Bank Corporate Markets Wertpapierhandelsbank \n "
+            }
+          ],
+          "_pages_truncated": "284 total, showing first 5",
+          "page_count": 284
+        },
+        "confidence": 1.0,
+        "citations": [
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=1",
+            "excerpt": "i: three-month EURIBOR will be set on each Interest Determination Date. The first Interest Determination Date is two Business Days before the Closing Date. The "
+          }
+        ],
+        "issues": []
+      },
+      "duration_ms": 11063.0,
+      "llm_calls": []
+    },
+    {
+      "step_id": "load_investor_report",
+      "primitive": "connector.investor_report",
+      "version": "0.1.0",
+      "input_args": {
+        "path": "E:\\REPOS\\sf-agents\\Sample Data\\monthly-investor-report-green-lion-2026-1-april-2026.pdf"
+      },
+      "output": {
+        "payload": {
+          "document": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+          "pages": [
+            {
+              "page": 1,
+              "text": "Green Lion 2026-1 B.V.\nwww.dutchsecuritisation.nl\nReport Version 2.1\nGreen Lion \n2026-1\n B.V.\nESMA identifier: 3TK20IVIUJ8J3ZU0QE75N202601\nPortfolio and Performance Report\nReporting Period: 1 April 2026 - 30 April 2026\nReporting Date: 26 May 2026\nAMOUNTS IN EURO\n"
+            },
+            {
+              "page": 2,
+              "text": "Table of Contents\nPage\nKey Dates\n3\nThe Mortgage Loan Portfolio\n3\nForeclosure Statistics\n4\nPerformance Ratios\n5\nTransaction Specific Information\n6\nStratification Tables\n7\nGlossary\n39\nContact Information\n41\n2 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+            },
+            {
+              "page": 3,
+              "text": "Securitisation Dates\nClosing Date\n3 Mar 2026\nPortfolio Cut-off Date\n30 Apr 2026\nRevolving Period End-Date\n23 Jan 2031\nFinal Maturity Date\n23 Jan 2062\nKey Dates\nNumber of Mortgage Loans\nNumber of Mortgage Loans at the beginning of the Reporting Period\n3,261\nRepaid in full Mortgage Loans\n-/-\n23\nPurchased Mortgage loans\n0\nRepurchased Mortgage Loans\n-/-\n0\nForeclosed Mortgage Loans\n-/-\n0\nOther\n-1\nNumber of Mortgage Loans at the end of the Reporting Period\n3,237\nAmounts of Mortgage Loans\nNet Outstanding balance at the beginning of the Reporting Period\n1,042,493,289.74\nRepayments\n-/-\n1,833,436.31\nPrepayments\n-/-\n7,202,449.32\nFurther Advances\n0.00\nPurchased Mortgage Loans\n0.00\nRepurchased Mortgage Loans\n-/-\n0.00\nForeclosed Mortgage Loans\n-/-\n0.00\nOther\n-45,341.07\nNet Outstanding balance at the end of the Reporting Period\n1,033,412,063.04\nAmount of Construction Deposit Obligations\nConstruction Deposit Obligations at the beginning of the Reporting Period\n740,506.29\nChanges in Construction Deposit Obligations\n-147,782.61\nConstruction Deposit Obligations at the end of the Reporting Period\n592,723.68\nThe Mortgage Loan Portfolio\n3 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+            },
+            {
+              "page": 4,
+              "text": "Foreclosure Statistics\nPrevious Period\nCurrent Period\nDefaulted Mortgage Loans\nThe total outstanding principal amount in default, according to securitisation documentation\n0\n0\nThe total outstanding principal amount in default, according to Article 178 of the CRR\n342,231\n341,677\nMortgage Loans foreclosed in the reporting period\nNumber of Mortgage Loans foreclosed during the Reporting Period\n0\n0\nNet principal balance of Mortgage Loans foreclosed during the Reporting Period\n0.00\n0.00\nOther foreclosed amounts (e.g. interest in arrears and penalties) during the Reporting Period\n0.00\n0.00\nTotal amount of foreclosures of Mortgage Loans during the Reporting Period\n0.00\n0.00\nRecoveries from sales on Foreclosed Mortgage Loans during the Reporting Period\n-/-\n0.00\n0.00\nTotal amount of losses on Foreclosed Mortgage Loans during the Reporting Period\n0.00\n0.00\nPost-Foreclosure recoveries on Foreclosed Mortgage Loans during the Reporting Period \n-/-\n0.00\n0.00\nLosses minus recoveries during the Reporting Period\n0.00\n0.00\nAverage loss severity during the Reporting Period\n0.00\n0.00\nMortgage loans foreclosed since Closing Date\nNumber of Mortgage Loans foreclosed since the Closing Date\n0\n0\nPercentage of number of Mortgage Loans at Closing Date (%, including replenished loans)\n0.00%\n0.00%\nNet principal balance of Mortgage Loans foreclosed since the Closing Date\n0.00\n0.00\nPercentage of net principal balance at the Closing Date (%, including replenished loans)\n0.00%\n0.00%\nNet principal balance of Mortgage Loans foreclosed since the Closing Date\n0.00\n0.00\nOther foreclosed amounts (e.g. interest in arrears and penalties) since the Closing Date\n0.00\n0.00\nTotal amount of foreclosures of Mortgage Loans since the Closing Date\n0.00\n0.00\nRecoveries from sales on Foreclosed Mortgage Loans since the Closing Date\n-/-\n0.00\n0.00\nTotal amount of losses on Mortgage Loans foreclosed since the Closing Date\n0.00\n0.00\nPost-Foreclosure recoveries on Mortgage Loans Foreclosed since the Closing Date\n-/-\n0.00\n0.00\nLosses minus recoveries since the Closing Date\n0.00\n0.00\nAverage loss severity since the Closing Date\n0.00\n0.00\nMortgage loans in Foreclosure\nNumber of Mortgage Loans in foreclosure at the beginning of the Reporting Period\n0\n0\nNumber of new Mortgage Loans foreclosed during the Reporting Period\n0\n0\nNumber of Mortgage Loans for which foreclosure was completed in the Reporting Period\n-/-\n0\n0\nNumber of Mortgage Loans in foreclosure at the end of the Reporting Period\n0\n0\nNet principal balance of Mortgage Loans in foreclosure at the beginning of the Reporting Period\n0.00\n0.00\nNet principal balance of new Mortgage Loans in foreclosure during the Reporting Period\n0.00\n0.00\nNet principal balance of Mortgage Loans for which foreclosure was completed  during the Reporting Period\n-/-\n0.00\n0.00\nNet principal balance of Mortgage Loans in foreclosure at the end of the Reporting Period\n0.00\n0.00\n4 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+            },
+            {
+              "page": 5,
+              "text": "Performance Ratios\nPrevious Period\nCurrent Period\nConstant Prepayment Rate (CPR)\nAnnualized Life CPR\n3.990%\n5.346%\nAnnualized 1-month average CPR\n4.975%\n8.001%\nAnnualized 3-month average CPR\nN/A\n5.346%\nAnnualized 6-month average CPR\nN/A\nN/A\nAnnualized 12-month average CPR\nN/A\nN/A\nPrincipal Payment Rate (PPR)\nAnnualized Life PPR\n2.093%\n2.097%\nAnnualized 1-month average PPR\n2.095%\n2.106%\nAnnualized 3-month average PPR\nN/A\n2.097%\nAnnualized 6-month average PPR\nN/A\nN/A\nAnnualized 12-month average PPR\nN/A\nN/A\nPayment Ratio\nPeriodic Payment Ratio\n99.520%\n99.730%\nConstant Default Rate\nConstant Default Rate current month\n0.000%\n0.000%\nConstant Default Rate 3-month average\nN/A\n0.131%\nConstant Default Rate 6-month average\nN/A\nN/A\nConstant Default Rate 12-month average\nN/A\nN/A\nConstant Default Rate to date\n0.196%\n0.131%\n5 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+            }
+          ],
+          "_pages_truncated": "41 total, showing first 5",
+          "page_count": 41
+        },
+        "confidence": 1.0,
+        "citations": [
+          {
+            "source": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+            "location": "page=1",
+            "excerpt": "Green Lion 2026-1 B.V.\nwww.dutchsecuritisation.nl\nReport Version 2.1\nGreen Lion \n2026-1\n B.V.\nESMA identifier: 3TK20IVIUJ8J3ZU0QE75N202601\nPortfolio and Perform"
+          }
+        ],
+        "issues": []
+      },
+      "duration_ms": 609.0,
+      "llm_calls": []
+    },
+    {
+      "step_id": "extract_prospectus_terms",
+      "primitive": "extractor.definitions",
+      "version": "0.1.0",
+      "input_args": {
+        "pages": [
+          {
+            "page": 1,
+            "text": " \n \ni: three-month EURIBOR will be set on each Interest Determination Date. The first Interest Determination Date is two Business Days before the Closing Date. The Interest Rate on the Class A Notes in respect of the \nfirst Interest Period shall be determined by reference to a straight line interpolation of three-month EURIBOR and six-month EURIBOR. \n \nPROSPECTUS DATED 27 FEBRUARY 2026 \nGREEN LION 2026-1 B.V. as Issuer \n(incorporated with limited liability in The Netherlands), with Legal Entity Identifier 724500T6FVI564GJ6879. The Securitisation transaction unique \nidentifier is 3TK20IVIUJ8J3ZU0QE75N202601. \nThis document constitutes a prospectus (the \"Prospectus\") within the meaning of Article 3(3) of Regulation (EU) 2017/1129 of the European Parliament and of the Council of 14 June 2017 (as amended, the \"EU Prospectus Regulation\"). \nThis Prospectus has been approved by the Dutch Authority for the Financial Markets (Stichting Autoriteit Financi\u00eble Markten) (the AFM), as competent authority under the EU Prospectus Regulation. The AFM only approves this Prospectus \nas meeting the standards of completeness, comprehensibility and consistency imposed by the EU Prospectus Regulation. Such approval should not be considered as an endorsement of the Issuer and the quality of the securities that are the \nsubject of this Prospectus and investors should make their own assessment as to the suitability of investing in the Notes. \nThis Prospectus is valid for use only by the Issuer for a period of up to 12 months after its approval by the AFM and shall expire on 27 February 2027, or when trading on a regulated market begins, whichever occurs earlier. \nIt is noted that the obligation to supplement the Prospectus in the event of significant new factors, material mistakes or material inaccuracies does not apply when the Prospectus is no longer valid. For this purpose, \"valid\" means valid for \nadmissions to trading on a regulated market of the Notes and the obligation to supplement the Prospectus is only required within its period of validity between the time when the Prospectus is approved and the time when trading on a regulated \nmarket begins. The language of this Prospectus is English. Certain legislative references and technical terms have been cited in their original language in order that the correct technical meaning may be ascribed to them under applicable \nlaw. Unless otherwise indicated in this Prospectus or the context otherwise requires, capitalised terms used in this Prospectus have the meaning ascribed thereto in Section 9.1 (Definitions) of this Prospectus. The principles of interpretation \nset out in Section 9.2 ( Interpretation) of this Prospectus shall apply to this Prospectus. The date of this Prospectus is 27 February 2026. \n Class A Class B Class C \nPrincipal Amount: EUR 1,000,000,000 EUR 53,100,000 EUR 10,500,000 \nIssue Price: 100% 100% 100% \nInterest rate up to and including the \nFirst Optional Redemption Date:i 3m EURIBOR + 0.43 per cent.  N/A N/A \nInterest rate after First Optional \nRedemption Date: 3m EURIBOR + 0.86 per cent. N/A N/A \nInterest Accrual: Act/360 N/A N/A \nExpected Ratings (Fitch/Moody's): AAA (sf) / Aaa (sf) Not rated Not rated \nFirst Optional Redemption Date: \nNotes Payment Date falling in \nJanuary 2031 \nNotes Payment Date falling in January 2031 Notes Payment Date falling in January 2031 \nFinal Maturity Date: Notes Payment Date falling in \nJanuary 2062 \nNotes Payment Date falling in January 2062 Notes Payment Date falling in January 2062 "
+          },
+          {
+            "page": 2,
+            "text": "- ii - \n \n \nING Bank N.V. \nas Seller \n(incorporated as a public company with limited liability) (naamloze vennootschap) under Dutch law) \nUnless otherwise indicated in this Prospectus or the context otherwise requires, capitalised terms used in this Prospectus have the meanings ascribed thereto in Section 9.1 (Definitions) of this Prospectus and the \nprinciples of interpretation set out in Section 9.2 ( Interpretation) of this Prospectus shall apply to this Prospectus. Unless indicated otherwise, the capitalised terms conform to the RMBS Standard. \nClosing Date The Issuer will issue the Notes in the classes set out above on 3 March 2026 (or such later date as may be agreed between the Issuer and the Seller (the \"Closing Date\")). \nUnderlying Assets The Issuer will make payments on the Notes in accordance with the relevant Priority of Payments from, among other things, payments of principal and interest received from a portfolio \nsolely comprising owner-occupied mortgage loans originated by the Seller (the \" Mortgage Loans\") and secured over residential properties located in The Netherlands. Legal title to the \nresulting receivables (the \"Mortgage Receivables\") will be assigned by the Seller to the Issuer on the Closing Date and thereafter, in respect of any New Mortgage Receivable, subject to \ncertain conditions being met, on each applicable Transfer Date during the Revolving Period. See Section 6.2 (Description of Mortgage Loans). \nInvestors can access static and dynamic data on the historical prepayment, arrears, default and loss performance for a period of more than 5 years prior to the Closing Date for the Mortgage \nReceivables by means of the securitisation transaction described in this Prospectus on the website of European Datawarehouse GmbH at https://eurodw.eu. This website and the contents \nthereof do not form part of this Prospectus. This data has not been audited by any auditor. \nSecurity for the Notes The Noteholders will, together with the other Secured Creditors, benefit from security rights created in favour of the Security Trustee over, among other things, the Mortgage Receivables. \nSee Condition 5 (Security). \nDenomination The Notes will have a minimum denomination of EUR 100,000 each and integral multiples of EUR 1,000 thereafter. \nForm The Notes will initially be represented by Temporary Global Notes in global bearer form. Interests in each Temporary Global Note will be exchangeable (following certification) of non-\nU.S. beneficial ownership not earlier than the Exchange for interests in a Permanent Global Note in global bearer form. Interests in the Global Notes will only in limited circumstances be \nexchangeable for Notes in definitive form.  \nInterest The Class A Notes will carry a floating rate of interest as set out above, payable quarterly in arrear on each Notes Payment Date. No interest will be payable on the Class B Notes and the \nClass C Notes. See Condition 7 (Interest). \nRedemption \nProvisions \nPayments of principal on the Notes will be made quarterly in arrear on each Notes Payment Date in the circumstances set out in, and subject to and in accordance with, the Conditions. The \nNotes will mature on the Final Maturity Date. Investors should note that Available Principal Funds will, subject to certain conditions being met, be applied, up to (and including) the \nRevolving Period End Date, towards payment of the purchase price for the New Mortgage Receivables (including Further Advance Receivables) up to the New Mortgage Receivables \nAvailable Amount or to make a reservation for such purpose which will form part of the Reserved Amount(s). On the First Optional Redemption Date and each succeeding Optional \nRedemption Date and in certain other circumstances, the Issuer will have the option to redeem all of the Notes. See Condition 8 (Final Redemption, Mandatory Redemption in part, Optional \nRedemption, Purchase and Cancellation). \nSubscription and Sale The Joint Lead Managers have agreed to subscribe and purchase the Class A Notes on the Closing Date, subject to certain conditions precedent being satisfied. The Seller has agreed to \npurchase the Class B Notes and the Class C Notes on the Closing Date, subject to certain conditions precedent being satisfied.  "
+          },
+          {
+            "page": 3,
+            "text": "- iii - \n \n \nCredit Rating \nAgencies \nFitch Ratings Ireland Limited (\"Fitch\") is established in the European Union and is registered under the CRA Regulation. As such, Fitch Ratings Ireland Limited is included in the list of \ncredit rating agencies published by the European Securities and Markets Authority on its website (at http://www.esma.europa.eu/page/List-registered-and-certified-CRAs) in accordance \nwith the CRA Regulation. Fitch Ratings Ireland Limited is not established in the United Kingdom. However, the rating(s) issued by Fitch Ratings Ireland Limited have been endorsed by \nFitch Ratings Limited in accordance with Regulation (EC) No. 1060/2009 as it forms part of domestic law of the United Kingdom by virtue of the EUWA (the \" UK CRA Regulation\") \nand have not been withdrawn, suspended, revised or assigned a negative outlook or put on negative watch. As such, the ratings issued by Fitch Ratings Ireland Limited may be used for \nregulatory purposes in the United Kingdom in accordance with the UK CRA Regulation. Moody's Investors Service Espa\u00f1a S.A. (\"Moody's\") is established in the European Union and is \nregistered under the CRA Regulation. As such, Moody's Investors Service Espa\u00f1a S.A. is included in the list of credit rating agencies published by the European Securities and Markets \nAuthority on its website (at http://www.esma.europa.eu/page/List-registered-and-certified-CRAs) in accordance with the CRA Regulation. Moody's Service Espa\u00f1a S.A. is not established \nin the United Kingdom. However, the rating(s) issued by Moody's Investors Service Espa\u00f1a S.A. have been endorsed by Moody's Investor Service Ltd. in accordance with the UK CRA \nRegulation and have not been withdrawn, suspended, revised or assigned a negative outlook or put on negative watch. As such, the ratings issued by Moody's Investors Service Espa\u00f1a S.A. \nmay be used for regulatory purposes in the United Kingdom in accordance with the UK CRA Regulation. \nCredit Ratings The ratings assigned by Fitch address the likelihood of (a) timely payment of interest due to the Class A Noteholders and (b) full payment of principal to the Noteholders by a date that is \nnot later than the Final Maturity Date. The credit rating assigned by Moody's addresses the expected loss to a Noteholder in proportion to the initial principal amount of the Class of Notes \nheld by such Noteholder by the Final Maturity Date. The assignment of ratings to the Class A Notes is not a recommendation to invest in the Class A Notes. Any credit rating assigned to \nthe Class A Notes may be reviewed, revised, suspended, withdrawn or assigned a given outlook at any time. Any such review, revision, suspension or withdrawal could adversely affect \nthe market value of the Class A Notes. \nListing Application has been made to list the Class A Notes on Euronext Amsterdam, a regulated market of Euronext Amsterdam N.V. This Prospectus has been approved by The Netherlands \nAuthority for the Financial Markets (Stichting Autoriteit Financi\u00eble Markten) and constitutes a prospectus for the purposes of the EU Prospectus Regulation. \nEurosystem Eligibility The Class A Notes are intended to be held in a manner which will allow Eurosystem eligibility. This means that the Class A Notes are intended upon issue to be deposited with Euroclear \nor Clearstream, Luxembourg as common safekeeper. It does not necessarily mean that the Class A Notes will be recognised as Eurosystem Eligible Collateral either upon issue or at any or \nall times during their life. Such recognition will depend upon satisfaction of the Eurosystem eligibility criteria. The other Classes of Notes are not intended to be held in a manner which \nallows Eurosystem eligibility and will be deposited with a common safekeeper acting on behalf of Euroclear and Clearstream, Luxembourg. The other Classes of Notes will not be listed.  \nLimited recourse \nobligations \nThe Notes will be limited recourse obligations of the Issuer only and will not be obligations or responsibilities of, or guaranteed by, any of the other parties to the Transaction Documents. \nThe Issuer will have limited sources of funds available. See Section 1 (Risk Factors). \nSubordination The Class B Notes and the Class C Notes are subordinated to the Class A Notes. See Section 4.1 (Terms and Conditions) and Section 5 (Credit Structure). \nEU and UK Risk \nRetention \nRequirements  \nThe Seller will retain, as 'originator' within the meaning of Article 2(3)(a) of Regulation (EU) 2017/2402 (as amended) (the \"EU Securitisation Regulation\") and Article 3(1) of SR 2024, \non an ongoing basis, a material net economic interest of not less than five (5) per cent. in the securitisation, in accordance with Article 6(3)(d) of the EU Securitisation Regulation (which \ndoes not take into account any relevant national measures) and SECN 5.2.8R(1)(d) (as if applicable to the Seller and as interpreted and in force as at the Closing Date). There is no obligation \nto comply with any amendments to the UK Risk Retention Rules (including any applicable UK technical standards, guidance or policy instruments introduced in relation thereto) after the \nClosing Date. As at the Closing Date, such material net economic interest will be satisfied by holding the Class B Notes. See Section 4.4 (Regulatory and Industry Compliance) for more \ndetail.  \nU.S. Risk Retention \nRequirements \nThe Seller intends to rely on an exemption provided for in Section 20 of Regulation RR (17 C.F.R. Part 246) implementing the risk retention requirements of Section 15G of the US \nSecurities Exchange Act of 1934, as amended (the \"U.S. Risk Retention Rules\") regarding non-U.S. transactions that meet certain requirements. Except as set forth below in Section 4.3 \n(Subscription and Sale), the Notes may not be purchased by any person except for persons that are not \"U.S. Persons\" as defined in the U.S. Risk Retention Rules (\" Risk Retention U.S. \nPersons\"). Prospective investors should note that the definition of \"U.S. Person\" in the U.S. Risk Retention Rules is different from the definition of \"U.S. Person\" in Regulation S. "
+          },
+          {
+            "page": 4,
+            "text": "- iv - \n \n \nSimple, Transparent \nand Standardised \nSecuritisation  \nOn the Closing Date, it is intended that a notification will be submitted to ESMA, DNB and AFM by the Seller, in its capacity as originator under the EU Securitisation Regulation, in \naccordance with Article 27 of the EU Securitisation Regulation, confirming that the requirements of Articles 19 to 22 of the EU Securitisation Regulation for designation as EU STS \nSecuritisation (the \"EU STS Requirements\") have been satisfied with respect to the Notes (such notification, the \" EU STS Notification \"). The EU STS Notification, once notified to \nESMA, will be available for download on the ESMA STS Register website at https://www.esma.europa.eu/policy-activities/securitisation/simple-transparent-and-standardised-sts-\nsecuritisation (or its successor website) (the \"ESMA STS Register Website\"). For the avoidance of doubt, the ESMA STS Register Website and the contents thereof do not form part of \nthis Prospectus. The EU STS Securitisation status of the Notes is not static and investors should verify the current status on the ESMA STS Register Website, which will be updated where \nthe Notes are no longer considered to be EU STS following a decision of competent authorities or a notification by the Seller, in its capacity as originator under the EU Securitisation \nRegulation. In relation to the EU STS Notification, the Seller, in its capacity as originator under the EU Securitisation Regulation, has been designated as the first point of contact for \ninvestors and competent authorities. The Seller, in its capacity as originator under the EU Securitisation Regulation has used the services of Prime Collateralised Securities (PCS) EU SAS \n(\"PCS\") (the \"STS Verification Agent\"), a third party authorised pursuant to Article 28 of the EU Securitisation Regulation in connection with an assessment of the compliance of the \nNotes with the requirements of Articles 19 to 22 of the EU Securitisation Regulation (the \" STS Verification\"). It is expected that the STS Verification prepared by the STS Verification \nAgent will be available on its website at https://www.pcsmarket.org/transactions/. For the avoidance of doubt, the website of the STS Verification Agent and the contents of that website \ndo not form part of this Prospectus. Investors should note that no notification will be submitted under SECN 2.5, and that the Notes will therefore not meet the requirements to qualify as \nan STS securitisation under the UK Securitisation Framework.  \nVolcker Rule The Issuer is not, and solely after giving effect to any offering and sale of the Notes and the application of the proceeds thereof will not be, a \"covered fund\" for the purposes of the \nregulations adopted under Section 13 of the Bank Holding Company Act of 1956, as amended (commonly known as the Volcker Rule). In reaching this conclusion, although other statutory \nor regulatory exclusions and/or exemptions under the Investment Company Act of 1940, as amended (the \" Investment Company Act \") and under the Volcker Rule and its related \nregulations may be available, the Issuer has relied on the determinations that (i) the Issuer would satisfy all of the elements of the exemption from registration under the Investment Company \nAct provided by Section 3(c)(5)(C) thereunder, and, accordingly, (ii) the Issuer may rely on the exemption from the definition of a \"covered fund\" under the Volcker Rule made available \nto entities that do not rely solely on Section 3(c)(1) or Section 3(c)(7) of the Investment Company Act for their exclusion and/or exemption from registration under the Investment Company \nAct. \nEU Benchmarks \nRegulation \nAmounts payable on the Class A Notes are calculated by reference to Euribor, which is provided by the European Money Markets Institute (\"EMMI\"). Euribor is an interest rate benchmark \nwithin the meaning of Regulation (EU) 2016/1011) (as amended, the \"EU Benchmarks Regulation\"). As at the date of this Prospectus, EMMI, in respect of Euribor appears on the register \nof administrators and benchmarks established and maintained by ESMA pursuant to Article 36 of the EU Benchmarks Regulation.  \nSignificant Investor It is expected that the Seller and/or its respective affiliates will on the Closing Date, purchase the Class B Notes and the Class C Notes (or substantial part(s) thereof). \nUse of proceeds \u2013 \nSecured Green \nCollateralised Notes \nThe Issuer will use the net proceeds from the issue of the Secured Green Collateralised Notes exclusively to purchase Mortgage Receivables pursuant to the Mortgage Receivables Purchase \nAgreement. An amount equal to EUR 811,681.42 will be deposited in the Construction Deposit Account in order to reflect those parts of the Mortgage Loans comprising Construction \nDeposits.  \nStatus of Secured \nGreen Collateralised \nNotes as \"green bond\"  \nThe Secured Green Collateralised Notes are intended to be aligned with the Green Bond Principles, as 'Secured Green Collateral Bond' as defined in the Green Bond Principles in effect as \nat the date of this Prospectus. The Green Bond Principles are voluntary process guidelines that include four core components: (i) use of proceeds, (ii) process for project evaluation and \nselection, (iii) management of proceeds and (iv) reporting. The Green Bond Principles are further described in Section 6.6 (Green Bond Principles and Energy Performance Certificates). \nThe Secured Green Collateralised Notes are not a \"European green bond\" or \"EuGB\" under the EUGBS Regulation and do not comply with the requirements set out therein. Each of the \nMortgage Receivables (including those relating to Mortgage Loans where part of the loan comprises a Construction Deposit) will be required to meet, among other things, the Eligibility \nCriteria and the Green Eligibility Criteria as at the relevant Transfer Date of such Mortgage Receivable, meaning, in relation to the Initial Portfolio, the Initial Cut-Off Date and, in relation \nto Mortgage Loans under which New Mortgage Receivables arise, the relevant Cut-Off Date. In order to seek alignment with Article 3 of the EU Taxonomy Regulation, including by virtue \nof alignment with the EU Taxonomy TSC building requirement, the Green Eligibility Criteria require that the Mortgaged Asset, on which the relevant Mortgage Loan from which such \nMortgage Receivable arises is secured, is assigned: (1) if it is built before 1 January 2021: a definitive Energy Performance Certificate of at least, \"A\" (based on an energy performance \ndemand determination method prescribed or permitted under applicable legislation at the relevant time that the Energy Performance Certificate was issued or otherwise referred to in the \nEnergy Performance Certificate, whereby (information in respect of) the most recent Energy Performance Certificate available to the Seller on the relevant Cut-Off Date shall be used to "
+          },
+          {
+            "page": 5,
+            "text": "- v - \n \n \nmonitor compliance with the Green Eligibility Criteria); (2) if it is built after 31 December 2020, a definitive Energy Performance Certificate confirming a maximum primary energy \ndemand (PED) of: (i) 27kWh/m2 per year if the Mortgaged Asset is a residential house (woning) or (ii) 45kWh/m2 per year if the Mortgaged Asset is a residential apartment (appartement) \n(in each case based on an energy performance determination method prescribed or permitted under applicable legislation at the relevant time that the Energy Performance Certificate was \nissued or otherwise referred to in the Energy Performance Certificate, whereby (information in respect of) the most recent Energy Performance Certificate available to the Seller on the \nrelevant Cut-Off Date shall be used to monitor compliance with the Green Eligibility Criteria), and provided that such assigned Energy Performance Certificate has not expired on the \nrelevant Cut-Off Date immediately prior to the Transfer Date of such Mortgage Receivable. In addition, the Eligibility Criteria include that the relevant Mortgaged Asset has been screened \nby the Seller by applying the Seller DNSH model and was scored as not sensitive in accordance with the Seller DNSH model, and by adopting the Seller's Country Risk MSS Approach, \nthe Issuer believes the Mortgaged Assets meet the minimum safeguards requirements (to the extent applicable) in Articles 3 and 18 of the EU Taxonomy Regulation. \n \nInvesting in the Notes involves certain risks. The principal risk factors that may affect the abilities of the Issuer to fulfil its obligations under the Notes are discussed in Section 1 (Risk Factors) of this \nProspectus. \nArranger  \nING Bank N.V. \n \nJoint Lead Managers \nING BofA Securities Lloyds Bank Corporate Markets Wertpapierhandelsbank \n "
+          },
+          "... (279 more items)"
+        ],
+        "document": "green-lion-2026-1-prospectus.pdf",
+        "terms": [
+          "issuer",
+          "collateral",
+          "tranche",
+          "note class",
+          "credit enhancement",
+          "... (8 more items)"
+        ]
+      },
+      "output": {
+        "payload": {
+          "document": "green-lion-2026-1-prospectus.pdf",
+          "definitions": [
+            {
+              "term": "issuer",
+              "definition": "Green Lion 2026-1 B.V., a Dutch private company with limited liability incorporated under Dutch law, established as a special purpose entity for the purpose of issuing asset backed securities and acquiring Mortgage Receivables.",
+              "page": 55,
+              "excerpt": "Issuer Green Lion 2026-1 B.V., incorporated under Dutch law as a private company with limited liability (besloten vennootschap met beperkte aansprakelijkheid), and registered with the Chamber of Commerce under number 98050257. The entire issued share capital of the Issuer is owned by the Shareholder."
+            },
+            {
+              "term": "collateral",
+              "definition": "The Mortgage Receivables (and related security) assigned to the Issuer, over which security rights are granted to the Security Trustee, securing the obligations of the Issuer to the Noteholders and other Secured Creditors.",
+              "page": 60,
+              "excerpt": "The Notes will be (indirectly) secured, through the Security Trustee, by a first ranking right of pledge granted by the Issuer to the Security Trustee over (i) the Mortgage Receivables (including any Related Security and NHG Advance Rights relating thereto), (ii) the Issuer's rights under or in connection with the Transaction Documents and (iii) the Issuer's rights in respect of the Issuer Transaction Accounts."
+            },
+            {
+              "term": "tranche",
+              "definition": "The Seller retains the first loss tranche, representing a material net economic interest of not less than 5 per cent. of the nominal value of the securitised exposures, held through retention of the Class B Notes.",
+              "page": 122,
+              "excerpt": "will retain on an ongoing basis the first loss tranche, which shall represent a material net economic interest of not less than 5 per cent. of the nominal value of the securitised exposures (such interest being the \"Retained Interest\") in accordance with Article 6(3)(d) of the EU Securitisation Regulation and SECN 5.2.8R(1)(d) (as if such UK Risk Retention Rules were applicable to it and solely as such rules are interpreted and in force as at the Closing Date). The Retained Interest shall be held through the Seller's retention of the Class B Notes;"
+            },
+            {
+              "term": "note class",
+              "definition": "The Notes are issued in three classes: Class A (EUR 1,000,000,000 floating rate, rated AAA/Aaa), Class B (EUR 53,100,000, unrated) and Class C (EUR 10,500,000, unrated), with Class B and Class C subordinated to Class A and Class C subordinated to Class B.",
+              "page": 87,
+              "excerpt": "4.2 Ranking: The Notes in each Class will at all times rank without preference or priority pari passu among themselves. The Class B Notes and the Class C Notes will be subordinated to the Class A Notes. The Class C Notes will be subordinated to the Class B Notes."
+            },
+            {
+              "term": "credit enhancement",
+              "definition": "Credit enhancement features include subordination of junior note classes, a reserve account funded by Class C Note proceeds, and a principal deficiency ledger mechanism to absorb realised losses before affecting senior noteholders.",
+              "page": 21,
+              "excerpt": "This risk may affect the Issuer's ability to make payments on the Notes, but is mitigated to some extent by certain credit enhancement features which are described in Section 5 (Credit Structure)."
+            },
+            {
+              "term": "reserve fund",
+              "definition": "The Reserve Account is maintained by the Issuer, funded on the Closing Date with the proceeds of the Class C Notes equal to the Reserve Account Target Level, and used to meet the Issuer's payment obligations under items (a) to (e) of the Revenue Priority of Payments when Available Revenue Funds are insufficient.",
+              "page": 63,
+              "excerpt": "Reserve Account The Issuer will maintain with the Issuer Account Bank the Reserve Account, to which the proceeds of the Class C Notes will be credited on the Closing Date. The purpose of the Reserve Account will be to enable the Issuer to meet the Issuer's payment obligations under items (a) to (e) (inclusive) in the Revenue Priority of Payments in the event that the Available Revenue Funds are not sufficient to meet such payment obligations on a Notes Payment Date."
+            },
+            {
+              "term": "interest rate",
+              "definition": "The Interest Rate on the Class A Notes is the rate calculated in accordance with Condition 7 (Interest), being three-month EURIBOR plus a margin of 0.43% per annum up to and including the First Optional Redemption Date, and 0.86% per annum thereafter. No interest is payable on the Class B Notes or Class C Notes.",
+              "page": 92,
+              "excerpt": "\"Interest Rate\" means the rate of interest calculated in accordance with this Condition 7 (Interest)."
+            },
+            {
+              "term": "maturity",
+              "definition": "The Final Maturity Date is the Notes Payment Date falling in January 2062, on which the Issuer shall redeem the Notes in each class at their Principal Amount Outstanding unless previously redeemed or purchased and cancelled.",
+              "page": 91,
+              "excerpt": "8.1 Final Redemption: Unless previously redeemed or purchased and cancelled as provided in this Condition, the Issuer shall redeem the Notes in each class at their Principal Amount Outstanding on the Final Maturity Date."
+            },
+            {
+              "term": "originator",
+              "definition": "ING Bank N.V. acts as the originator (also referred to as the Seller) of the Mortgage Receivables, having originated the Mortgage Loans in the ordinary course of its business and selling and assigning them to the Issuer.",
+              "page": 79,
+              "excerpt": "3.4 SELLER / ORIGINATOR\nING BANK N.V."
+            },
+            {
+              "term": "servicer",
+              "definition": "ING Bank N.V. is appointed as the Servicer, responsible for administering and collecting payments on the Mortgage Receivables on behalf of the Issuer in accordance with the Servicing Agreement.",
+              "page": 81,
+              "excerpt": "3.5 SERVICER\nThe Issuer has appointed ING as the Servicer on the Closing Date. See Section 3.4 (Seller/Originator)."
+            },
+            {
+              "term": "green bond",
+              "definition": "The Secured Green Collateralised Notes (Class A and Class B Notes) are intended to be aligned with the Green Bond Principles as 'Secured Green Collateral Bond', with net proceeds exclusively applied to purchase Mortgage Receivables meeting the Green Eligibility Criteria and DNSH Eligibility Criterion.",
+              "page": 60,
+              "excerpt": "Green Bond Principles and EU Taxonomy Regulation alignment: The Secured Green Collateralised Notes are intended to be aligned with the Combined Green Standards, meaning that (A) they intend to be aligned with the Green Bond Principles as 'Secured Green Collateral Bond' as defined in the Green Bond Principles in effect as at the date of this Prospectus and (B) the Mortgaged Assets securing the related mortgage Receivables intend to be aligned with Articles 3 and 18 of the EU Taxonomy Regulation including by virtue of alignment with the EU Taxonomy TSC building requirements and the minimum safeguards requirements of Articles 3 and 18 of the EU Taxonomy Regulation (to the extent applicable)."
+            },
+            {
+              "term": "eligible assets",
+              "definition": "An Eligible Mortgage Receivable is a Mortgage Receivable that complies with the Eligibility Criteria set out in Section 7.3.1 (Mortgage Loan Criteria) as at the relevant Transfer Date, including requirements relating to Dutch law governance, owner-occupied residential properties in the Netherlands, loan-to-value limits, and origination standards.",
+              "page": 257,
+              "excerpt": "+ \"Eligible Mortgage Receivable\" means a Mortgage Receivable that complies with the Eligibility Criteria as at the relevant Transfer Date of such Mortgage Receivable;"
+            },
+            {
+              "term": "overcollateralisation",
+              "definition": "The aggregate Outstanding Principal Balance of the Initial Portfolio (EUR 1,053,099,999.98) exceeds the total principal amount of the Secured Green Collateralised Notes (EUR 1,053,100,000), with the Class C Notes (EUR 10,500,000) funded from the Reserve Account providing additional credit support; the structure also includes a principal deficiency ledger to track and absorb losses.",
+              "page": 54,
+              "excerpt": "Loss Allocation To mitigate the risk that funds might otherwise be applied, the Issuer (or Issuer Administrator on its behalf) is required to maintain a Principal Deficiency Ledger in which Realised Losses are administered. To the extent any amount is debited to the Principal Deficiency Ledger, such debit entries in the relevant sub-ledger of the Principal Deficiency Ledger are required to be made up before lower ranking obligations in the Revenue Priority of Payments are paid or provided for, which may result in a reduced payment by the Issuer on redemption of a Class of Notes."
+            }
+          ]
+        },
+        "confidence": 1.0,
+        "citations": [
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=55",
+            "excerpt": "Issuer Green Lion 2026-1 B.V., incorporated under Dutch law as a private company with limited liability (besloten vennootschap met beperkte aansprakelijkheid), and registered with the Chamber of Comme"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=60",
+            "excerpt": "The Notes will be (indirectly) secured, through the Security Trustee, by a first ranking right of pledge granted by the Issuer to the Security Trustee over (i) the Mortgage Receivables (including any "
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=122",
+            "excerpt": "will retain on an ongoing basis the first loss tranche, which shall represent a material net economic interest of not less than 5 per cent. of the nominal value of the securitised exposures (such inte"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=87",
+            "excerpt": "4.2 Ranking: The Notes in each Class will at all times rank without preference or priority pari passu among themselves. The Class B Notes and the Class C Notes will be subordinated to the Class A Note"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=21",
+            "excerpt": "This risk may affect the Issuer's ability to make payments on the Notes, but is mitigated to some extent by certain credit enhancement features which are described in Section 5 (Credit Structure)."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=63",
+            "excerpt": "Reserve Account The Issuer will maintain with the Issuer Account Bank the Reserve Account, to which the proceeds of the Class C Notes will be credited on the Closing Date. The purpose of the Reserve A"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=92",
+            "excerpt": "\"Interest Rate\" means the rate of interest calculated in accordance with this Condition 7 (Interest)."
+          }
+        ],
+        "issues": [
+          "Excerpt for 'maturity' not found verbatim on page 91; treating definition as unverified.",
+          "Excerpt for 'originator' not found verbatim on page 79; treating definition as unverified.",
+          "Excerpt for 'servicer' not found verbatim on page 81; treating definition as unverified.",
+          "Excerpt for 'green bond' not found verbatim on page 60; treating definition as unverified.",
+          "Excerpt for 'eligible assets' not found verbatim on page 257; treating definition as unverified.",
+          "Excerpt for 'overcollateralisation' not found verbatim on page 54; treating definition as unverified."
+        ]
+      },
+      "duration_ms": 51891.0,
+      "llm_calls": []
+    },
+    {
+      "step_id": "extract_investor_report_terms",
+      "primitive": "extractor.definitions",
+      "version": "0.1.0",
+      "input_args": {
+        "pages": [
+          {
+            "page": 1,
+            "text": "Green Lion 2026-1 B.V.\nwww.dutchsecuritisation.nl\nReport Version 2.1\nGreen Lion \n2026-1\n B.V.\nESMA identifier: 3TK20IVIUJ8J3ZU0QE75N202601\nPortfolio and Performance Report\nReporting Period: 1 April 2026 - 30 April 2026\nReporting Date: 26 May 2026\nAMOUNTS IN EURO\n"
+          },
+          {
+            "page": 2,
+            "text": "Table of Contents\nPage\nKey Dates\n3\nThe Mortgage Loan Portfolio\n3\nForeclosure Statistics\n4\nPerformance Ratios\n5\nTransaction Specific Information\n6\nStratification Tables\n7\nGlossary\n39\nContact Information\n41\n2 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+          },
+          {
+            "page": 3,
+            "text": "Securitisation Dates\nClosing Date\n3 Mar 2026\nPortfolio Cut-off Date\n30 Apr 2026\nRevolving Period End-Date\n23 Jan 2031\nFinal Maturity Date\n23 Jan 2062\nKey Dates\nNumber of Mortgage Loans\nNumber of Mortgage Loans at the beginning of the Reporting Period\n3,261\nRepaid in full Mortgage Loans\n-/-\n23\nPurchased Mortgage loans\n0\nRepurchased Mortgage Loans\n-/-\n0\nForeclosed Mortgage Loans\n-/-\n0\nOther\n-1\nNumber of Mortgage Loans at the end of the Reporting Period\n3,237\nAmounts of Mortgage Loans\nNet Outstanding balance at the beginning of the Reporting Period\n1,042,493,289.74\nRepayments\n-/-\n1,833,436.31\nPrepayments\n-/-\n7,202,449.32\nFurther Advances\n0.00\nPurchased Mortgage Loans\n0.00\nRepurchased Mortgage Loans\n-/-\n0.00\nForeclosed Mortgage Loans\n-/-\n0.00\nOther\n-45,341.07\nNet Outstanding balance at the end of the Reporting Period\n1,033,412,063.04\nAmount of Construction Deposit Obligations\nConstruction Deposit Obligations at the beginning of the Reporting Period\n740,506.29\nChanges in Construction Deposit Obligations\n-147,782.61\nConstruction Deposit Obligations at the end of the Reporting Period\n592,723.68\nThe Mortgage Loan Portfolio\n3 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+          },
+          {
+            "page": 4,
+            "text": "Foreclosure Statistics\nPrevious Period\nCurrent Period\nDefaulted Mortgage Loans\nThe total outstanding principal amount in default, according to securitisation documentation\n0\n0\nThe total outstanding principal amount in default, according to Article 178 of the CRR\n342,231\n341,677\nMortgage Loans foreclosed in the reporting period\nNumber of Mortgage Loans foreclosed during the Reporting Period\n0\n0\nNet principal balance of Mortgage Loans foreclosed during the Reporting Period\n0.00\n0.00\nOther foreclosed amounts (e.g. interest in arrears and penalties) during the Reporting Period\n0.00\n0.00\nTotal amount of foreclosures of Mortgage Loans during the Reporting Period\n0.00\n0.00\nRecoveries from sales on Foreclosed Mortgage Loans during the Reporting Period\n-/-\n0.00\n0.00\nTotal amount of losses on Foreclosed Mortgage Loans during the Reporting Period\n0.00\n0.00\nPost-Foreclosure recoveries on Foreclosed Mortgage Loans during the Reporting Period \n-/-\n0.00\n0.00\nLosses minus recoveries during the Reporting Period\n0.00\n0.00\nAverage loss severity during the Reporting Period\n0.00\n0.00\nMortgage loans foreclosed since Closing Date\nNumber of Mortgage Loans foreclosed since the Closing Date\n0\n0\nPercentage of number of Mortgage Loans at Closing Date (%, including replenished loans)\n0.00%\n0.00%\nNet principal balance of Mortgage Loans foreclosed since the Closing Date\n0.00\n0.00\nPercentage of net principal balance at the Closing Date (%, including replenished loans)\n0.00%\n0.00%\nNet principal balance of Mortgage Loans foreclosed since the Closing Date\n0.00\n0.00\nOther foreclosed amounts (e.g. interest in arrears and penalties) since the Closing Date\n0.00\n0.00\nTotal amount of foreclosures of Mortgage Loans since the Closing Date\n0.00\n0.00\nRecoveries from sales on Foreclosed Mortgage Loans since the Closing Date\n-/-\n0.00\n0.00\nTotal amount of losses on Mortgage Loans foreclosed since the Closing Date\n0.00\n0.00\nPost-Foreclosure recoveries on Mortgage Loans Foreclosed since the Closing Date\n-/-\n0.00\n0.00\nLosses minus recoveries since the Closing Date\n0.00\n0.00\nAverage loss severity since the Closing Date\n0.00\n0.00\nMortgage loans in Foreclosure\nNumber of Mortgage Loans in foreclosure at the beginning of the Reporting Period\n0\n0\nNumber of new Mortgage Loans foreclosed during the Reporting Period\n0\n0\nNumber of Mortgage Loans for which foreclosure was completed in the Reporting Period\n-/-\n0\n0\nNumber of Mortgage Loans in foreclosure at the end of the Reporting Period\n0\n0\nNet principal balance of Mortgage Loans in foreclosure at the beginning of the Reporting Period\n0.00\n0.00\nNet principal balance of new Mortgage Loans in foreclosure during the Reporting Period\n0.00\n0.00\nNet principal balance of Mortgage Loans for which foreclosure was completed  during the Reporting Period\n-/-\n0.00\n0.00\nNet principal balance of Mortgage Loans in foreclosure at the end of the Reporting Period\n0.00\n0.00\n4 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+          },
+          {
+            "page": 5,
+            "text": "Performance Ratios\nPrevious Period\nCurrent Period\nConstant Prepayment Rate (CPR)\nAnnualized Life CPR\n3.990%\n5.346%\nAnnualized 1-month average CPR\n4.975%\n8.001%\nAnnualized 3-month average CPR\nN/A\n5.346%\nAnnualized 6-month average CPR\nN/A\nN/A\nAnnualized 12-month average CPR\nN/A\nN/A\nPrincipal Payment Rate (PPR)\nAnnualized Life PPR\n2.093%\n2.097%\nAnnualized 1-month average PPR\n2.095%\n2.106%\nAnnualized 3-month average PPR\nN/A\n2.097%\nAnnualized 6-month average PPR\nN/A\nN/A\nAnnualized 12-month average PPR\nN/A\nN/A\nPayment Ratio\nPeriodic Payment Ratio\n99.520%\n99.730%\nConstant Default Rate\nConstant Default Rate current month\n0.000%\n0.000%\nConstant Default Rate 3-month average\nN/A\n0.131%\nConstant Default Rate 6-month average\nN/A\nN/A\nConstant Default Rate 12-month average\nN/A\nN/A\nConstant Default Rate to date\n0.196%\n0.131%\n5 of 41\nGreen Lion 2026-1 B.V.\nPortfolio and Performance Report: 1 April 2026 - 30 April 2026\n"
+          },
+          "... (36 more items)"
+        ],
+        "document": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+        "terms": [
+          "pool balance",
+          "arrears",
+          "defaults",
+          "prepayment rate",
+          "note balance",
+          "credit enhancement",
+          "reserve fund",
+          "collections"
+        ]
+      },
+      "output": {
+        "payload": {
+          "document": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+          "definitions": [
+            {
+              "term": "defaults",
+              "definition": "The total outstanding principal amount in default, measured either according to securitisation documentation or according to Article 178 of the CRR.",
+              "page": 4,
+              "excerpt": "Defaulted Mortgage Loans\nThe total outstanding principal amount in default, according to securitisation documentation\nThe total outstanding principal amount in default, according to Article 178 of the CRR"
+            },
+            {
+              "term": "prepayment rate",
+              "definition": "The Constant Prepayment Rate (CPR) expressed on an annualised basis over various averaging periods (life, 1-month, 3-month, 6-month, 12-month).",
+              "page": 5,
+              "excerpt": "Constant Prepayment Rate (CPR)\nAnnualized Life CPR\nAnnualized 1-month average CPR\nAnnualized 3-month average CPR\nAnnualized 6-month average CPR\nAnnualized 12-month average CPR"
+            },
+            {
+              "term": "arrears",
+              "definition": "Overdue amounts on mortgage loans categorised by days past due buckets, with the number of days past due determined according to the EBA Definition of Default using relative and absolute thresholds.",
+              "page": 8,
+              "excerpt": "The number of days past due is determined according to the EBA Definition of Default, using relative and absolute thresholds. As a result, mortgage loans with an arrears amount could be considered performing if both thresholds are not satisfied. Conservatively, mortgage loans which are considered \"Unlikely to Pay\" or are considered in \"Default\", but are less than 90 days overdue, are classified within the >180+ days arrear bucket."
+            }
+          ]
+        },
+        "confidence": 0.375,
+        "citations": [
+          {
+            "source": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+            "location": "page=4",
+            "excerpt": "Defaulted Mortgage Loans\nThe total outstanding principal amount in default, according to securitisation documentation\nThe total outstanding principal amount in default, according to Article 178 of the"
+          },
+          {
+            "source": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+            "location": "page=8",
+            "excerpt": "The number of days past due is determined according to the EBA Definition of Default, using relative and absolute thresholds. As a result, mortgage loans with an arrears amount could be considered per"
+          }
+        ],
+        "issues": [
+          "Excerpt for 'prepayment rate' not found verbatim on page 5; treating definition as unverified.",
+          "No definition extracted for: collections, credit enhancement, note balance, pool balance, reserve fund."
+        ]
+      },
+      "duration_ms": 7062.0,
+      "llm_calls": []
+    },
+    {
+      "step_id": "extract_waterfall",
+      "primitive": "extractor.waterfall",
+      "version": "0.1.0",
+      "input_args": {
+        "pages": [
+          {
+            "page": 1,
+            "text": " \n \ni: three-month EURIBOR will be set on each Interest Determination Date. The first Interest Determination Date is two Business Days before the Closing Date. The Interest Rate on the Class A Notes in respect of the \nfirst Interest Period shall be determined by reference to a straight line interpolation of three-month EURIBOR and six-month EURIBOR. \n \nPROSPECTUS DATED 27 FEBRUARY 2026 \nGREEN LION 2026-1 B.V. as Issuer \n(incorporated with limited liability in The Netherlands), with Legal Entity Identifier 724500T6FVI564GJ6879. The Securitisation transaction unique \nidentifier is 3TK20IVIUJ8J3ZU0QE75N202601. \nThis document constitutes a prospectus (the \"Prospectus\") within the meaning of Article 3(3) of Regulation (EU) 2017/1129 of the European Parliament and of the Council of 14 June 2017 (as amended, the \"EU Prospectus Regulation\"). \nThis Prospectus has been approved by the Dutch Authority for the Financial Markets (Stichting Autoriteit Financi\u00eble Markten) (the AFM), as competent authority under the EU Prospectus Regulation. The AFM only approves this Prospectus \nas meeting the standards of completeness, comprehensibility and consistency imposed by the EU Prospectus Regulation. Such approval should not be considered as an endorsement of the Issuer and the quality of the securities that are the \nsubject of this Prospectus and investors should make their own assessment as to the suitability of investing in the Notes. \nThis Prospectus is valid for use only by the Issuer for a period of up to 12 months after its approval by the AFM and shall expire on 27 February 2027, or when trading on a regulated market begins, whichever occurs earlier. \nIt is noted that the obligation to supplement the Prospectus in the event of significant new factors, material mistakes or material inaccuracies does not apply when the Prospectus is no longer valid. For this purpose, \"valid\" means valid for \nadmissions to trading on a regulated market of the Notes and the obligation to supplement the Prospectus is only required within its period of validity between the time when the Prospectus is approved and the time when trading on a regulated \nmarket begins. The language of this Prospectus is English. Certain legislative references and technical terms have been cited in their original language in order that the correct technical meaning may be ascribed to them under applicable \nlaw. Unless otherwise indicated in this Prospectus or the context otherwise requires, capitalised terms used in this Prospectus have the meaning ascribed thereto in Section 9.1 (Definitions) of this Prospectus. The principles of interpretation \nset out in Section 9.2 ( Interpretation) of this Prospectus shall apply to this Prospectus. The date of this Prospectus is 27 February 2026. \n Class A Class B Class C \nPrincipal Amount: EUR 1,000,000,000 EUR 53,100,000 EUR 10,500,000 \nIssue Price: 100% 100% 100% \nInterest rate up to and including the \nFirst Optional Redemption Date:i 3m EURIBOR + 0.43 per cent.  N/A N/A \nInterest rate after First Optional \nRedemption Date: 3m EURIBOR + 0.86 per cent. N/A N/A \nInterest Accrual: Act/360 N/A N/A \nExpected Ratings (Fitch/Moody's): AAA (sf) / Aaa (sf) Not rated Not rated \nFirst Optional Redemption Date: \nNotes Payment Date falling in \nJanuary 2031 \nNotes Payment Date falling in January 2031 Notes Payment Date falling in January 2031 \nFinal Maturity Date: Notes Payment Date falling in \nJanuary 2062 \nNotes Payment Date falling in January 2062 Notes Payment Date falling in January 2062 "
+          },
+          {
+            "page": 2,
+            "text": "- ii - \n \n \nING Bank N.V. \nas Seller \n(incorporated as a public company with limited liability) (naamloze vennootschap) under Dutch law) \nUnless otherwise indicated in this Prospectus or the context otherwise requires, capitalised terms used in this Prospectus have the meanings ascribed thereto in Section 9.1 (Definitions) of this Prospectus and the \nprinciples of interpretation set out in Section 9.2 ( Interpretation) of this Prospectus shall apply to this Prospectus. Unless indicated otherwise, the capitalised terms conform to the RMBS Standard. \nClosing Date The Issuer will issue the Notes in the classes set out above on 3 March 2026 (or such later date as may be agreed between the Issuer and the Seller (the \"Closing Date\")). \nUnderlying Assets The Issuer will make payments on the Notes in accordance with the relevant Priority of Payments from, among other things, payments of principal and interest received from a portfolio \nsolely comprising owner-occupied mortgage loans originated by the Seller (the \" Mortgage Loans\") and secured over residential properties located in The Netherlands. Legal title to the \nresulting receivables (the \"Mortgage Receivables\") will be assigned by the Seller to the Issuer on the Closing Date and thereafter, in respect of any New Mortgage Receivable, subject to \ncertain conditions being met, on each applicable Transfer Date during the Revolving Period. See Section 6.2 (Description of Mortgage Loans). \nInvestors can access static and dynamic data on the historical prepayment, arrears, default and loss performance for a period of more than 5 years prior to the Closing Date for the Mortgage \nReceivables by means of the securitisation transaction described in this Prospectus on the website of European Datawarehouse GmbH at https://eurodw.eu. This website and the contents \nthereof do not form part of this Prospectus. This data has not been audited by any auditor. \nSecurity for the Notes The Noteholders will, together with the other Secured Creditors, benefit from security rights created in favour of the Security Trustee over, among other things, the Mortgage Receivables. \nSee Condition 5 (Security). \nDenomination The Notes will have a minimum denomination of EUR 100,000 each and integral multiples of EUR 1,000 thereafter. \nForm The Notes will initially be represented by Temporary Global Notes in global bearer form. Interests in each Temporary Global Note will be exchangeable (following certification) of non-\nU.S. beneficial ownership not earlier than the Exchange for interests in a Permanent Global Note in global bearer form. Interests in the Global Notes will only in limited circumstances be \nexchangeable for Notes in definitive form.  \nInterest The Class A Notes will carry a floating rate of interest as set out above, payable quarterly in arrear on each Notes Payment Date. No interest will be payable on the Class B Notes and the \nClass C Notes. See Condition 7 (Interest). \nRedemption \nProvisions \nPayments of principal on the Notes will be made quarterly in arrear on each Notes Payment Date in the circumstances set out in, and subject to and in accordance with, the Conditions. The \nNotes will mature on the Final Maturity Date. Investors should note that Available Principal Funds will, subject to certain conditions being met, be applied, up to (and including) the \nRevolving Period End Date, towards payment of the purchase price for the New Mortgage Receivables (including Further Advance Receivables) up to the New Mortgage Receivables \nAvailable Amount or to make a reservation for such purpose which will form part of the Reserved Amount(s). On the First Optional Redemption Date and each succeeding Optional \nRedemption Date and in certain other circumstances, the Issuer will have the option to redeem all of the Notes. See Condition 8 (Final Redemption, Mandatory Redemption in part, Optional \nRedemption, Purchase and Cancellation). \nSubscription and Sale The Joint Lead Managers have agreed to subscribe and purchase the Class A Notes on the Closing Date, subject to certain conditions precedent being satisfied. The Seller has agreed to \npurchase the Class B Notes and the Class C Notes on the Closing Date, subject to certain conditions precedent being satisfied.  "
+          },
+          {
+            "page": 3,
+            "text": "- iii - \n \n \nCredit Rating \nAgencies \nFitch Ratings Ireland Limited (\"Fitch\") is established in the European Union and is registered under the CRA Regulation. As such, Fitch Ratings Ireland Limited is included in the list of \ncredit rating agencies published by the European Securities and Markets Authority on its website (at http://www.esma.europa.eu/page/List-registered-and-certified-CRAs) in accordance \nwith the CRA Regulation. Fitch Ratings Ireland Limited is not established in the United Kingdom. However, the rating(s) issued by Fitch Ratings Ireland Limited have been endorsed by \nFitch Ratings Limited in accordance with Regulation (EC) No. 1060/2009 as it forms part of domestic law of the United Kingdom by virtue of the EUWA (the \" UK CRA Regulation\") \nand have not been withdrawn, suspended, revised or assigned a negative outlook or put on negative watch. As such, the ratings issued by Fitch Ratings Ireland Limited may be used for \nregulatory purposes in the United Kingdom in accordance with the UK CRA Regulation. Moody's Investors Service Espa\u00f1a S.A. (\"Moody's\") is established in the European Union and is \nregistered under the CRA Regulation. As such, Moody's Investors Service Espa\u00f1a S.A. is included in the list of credit rating agencies published by the European Securities and Markets \nAuthority on its website (at http://www.esma.europa.eu/page/List-registered-and-certified-CRAs) in accordance with the CRA Regulation. Moody's Service Espa\u00f1a S.A. is not established \nin the United Kingdom. However, the rating(s) issued by Moody's Investors Service Espa\u00f1a S.A. have been endorsed by Moody's Investor Service Ltd. in accordance with the UK CRA \nRegulation and have not been withdrawn, suspended, revised or assigned a negative outlook or put on negative watch. As such, the ratings issued by Moody's Investors Service Espa\u00f1a S.A. \nmay be used for regulatory purposes in the United Kingdom in accordance with the UK CRA Regulation. \nCredit Ratings The ratings assigned by Fitch address the likelihood of (a) timely payment of interest due to the Class A Noteholders and (b) full payment of principal to the Noteholders by a date that is \nnot later than the Final Maturity Date. The credit rating assigned by Moody's addresses the expected loss to a Noteholder in proportion to the initial principal amount of the Class of Notes \nheld by such Noteholder by the Final Maturity Date. The assignment of ratings to the Class A Notes is not a recommendation to invest in the Class A Notes. Any credit rating assigned to \nthe Class A Notes may be reviewed, revised, suspended, withdrawn or assigned a given outlook at any time. Any such review, revision, suspension or withdrawal could adversely affect \nthe market value of the Class A Notes. \nListing Application has been made to list the Class A Notes on Euronext Amsterdam, a regulated market of Euronext Amsterdam N.V. This Prospectus has been approved by The Netherlands \nAuthority for the Financial Markets (Stichting Autoriteit Financi\u00eble Markten) and constitutes a prospectus for the purposes of the EU Prospectus Regulation. \nEurosystem Eligibility The Class A Notes are intended to be held in a manner which will allow Eurosystem eligibility. This means that the Class A Notes are intended upon issue to be deposited with Euroclear \nor Clearstream, Luxembourg as common safekeeper. It does not necessarily mean that the Class A Notes will be recognised as Eurosystem Eligible Collateral either upon issue or at any or \nall times during their life. Such recognition will depend upon satisfaction of the Eurosystem eligibility criteria. The other Classes of Notes are not intended to be held in a manner which \nallows Eurosystem eligibility and will be deposited with a common safekeeper acting on behalf of Euroclear and Clearstream, Luxembourg. The other Classes of Notes will not be listed.  \nLimited recourse \nobligations \nThe Notes will be limited recourse obligations of the Issuer only and will not be obligations or responsibilities of, or guaranteed by, any of the other parties to the Transaction Documents. \nThe Issuer will have limited sources of funds available. See Section 1 (Risk Factors). \nSubordination The Class B Notes and the Class C Notes are subordinated to the Class A Notes. See Section 4.1 (Terms and Conditions) and Section 5 (Credit Structure). \nEU and UK Risk \nRetention \nRequirements  \nThe Seller will retain, as 'originator' within the meaning of Article 2(3)(a) of Regulation (EU) 2017/2402 (as amended) (the \"EU Securitisation Regulation\") and Article 3(1) of SR 2024, \non an ongoing basis, a material net economic interest of not less than five (5) per cent. in the securitisation, in accordance with Article 6(3)(d) of the EU Securitisation Regulation (which \ndoes not take into account any relevant national measures) and SECN 5.2.8R(1)(d) (as if applicable to the Seller and as interpreted and in force as at the Closing Date). There is no obligation \nto comply with any amendments to the UK Risk Retention Rules (including any applicable UK technical standards, guidance or policy instruments introduced in relation thereto) after the \nClosing Date. As at the Closing Date, such material net economic interest will be satisfied by holding the Class B Notes. See Section 4.4 (Regulatory and Industry Compliance) for more \ndetail.  \nU.S. Risk Retention \nRequirements \nThe Seller intends to rely on an exemption provided for in Section 20 of Regulation RR (17 C.F.R. Part 246) implementing the risk retention requirements of Section 15G of the US \nSecurities Exchange Act of 1934, as amended (the \"U.S. Risk Retention Rules\") regarding non-U.S. transactions that meet certain requirements. Except as set forth below in Section 4.3 \n(Subscription and Sale), the Notes may not be purchased by any person except for persons that are not \"U.S. Persons\" as defined in the U.S. Risk Retention Rules (\" Risk Retention U.S. \nPersons\"). Prospective investors should note that the definition of \"U.S. Person\" in the U.S. Risk Retention Rules is different from the definition of \"U.S. Person\" in Regulation S. "
+          },
+          {
+            "page": 4,
+            "text": "- iv - \n \n \nSimple, Transparent \nand Standardised \nSecuritisation  \nOn the Closing Date, it is intended that a notification will be submitted to ESMA, DNB and AFM by the Seller, in its capacity as originator under the EU Securitisation Regulation, in \naccordance with Article 27 of the EU Securitisation Regulation, confirming that the requirements of Articles 19 to 22 of the EU Securitisation Regulation for designation as EU STS \nSecuritisation (the \"EU STS Requirements\") have been satisfied with respect to the Notes (such notification, the \" EU STS Notification \"). The EU STS Notification, once notified to \nESMA, will be available for download on the ESMA STS Register website at https://www.esma.europa.eu/policy-activities/securitisation/simple-transparent-and-standardised-sts-\nsecuritisation (or its successor website) (the \"ESMA STS Register Website\"). For the avoidance of doubt, the ESMA STS Register Website and the contents thereof do not form part of \nthis Prospectus. The EU STS Securitisation status of the Notes is not static and investors should verify the current status on the ESMA STS Register Website, which will be updated where \nthe Notes are no longer considered to be EU STS following a decision of competent authorities or a notification by the Seller, in its capacity as originator under the EU Securitisation \nRegulation. In relation to the EU STS Notification, the Seller, in its capacity as originator under the EU Securitisation Regulation, has been designated as the first point of contact for \ninvestors and competent authorities. The Seller, in its capacity as originator under the EU Securitisation Regulation has used the services of Prime Collateralised Securities (PCS) EU SAS \n(\"PCS\") (the \"STS Verification Agent\"), a third party authorised pursuant to Article 28 of the EU Securitisation Regulation in connection with an assessment of the compliance of the \nNotes with the requirements of Articles 19 to 22 of the EU Securitisation Regulation (the \" STS Verification\"). It is expected that the STS Verification prepared by the STS Verification \nAgent will be available on its website at https://www.pcsmarket.org/transactions/. For the avoidance of doubt, the website of the STS Verification Agent and the contents of that website \ndo not form part of this Prospectus. Investors should note that no notification will be submitted under SECN 2.5, and that the Notes will therefore not meet the requirements to qualify as \nan STS securitisation under the UK Securitisation Framework.  \nVolcker Rule The Issuer is not, and solely after giving effect to any offering and sale of the Notes and the application of the proceeds thereof will not be, a \"covered fund\" for the purposes of the \nregulations adopted under Section 13 of the Bank Holding Company Act of 1956, as amended (commonly known as the Volcker Rule). In reaching this conclusion, although other statutory \nor regulatory exclusions and/or exemptions under the Investment Company Act of 1940, as amended (the \" Investment Company Act \") and under the Volcker Rule and its related \nregulations may be available, the Issuer has relied on the determinations that (i) the Issuer would satisfy all of the elements of the exemption from registration under the Investment Company \nAct provided by Section 3(c)(5)(C) thereunder, and, accordingly, (ii) the Issuer may rely on the exemption from the definition of a \"covered fund\" under the Volcker Rule made available \nto entities that do not rely solely on Section 3(c)(1) or Section 3(c)(7) of the Investment Company Act for their exclusion and/or exemption from registration under the Investment Company \nAct. \nEU Benchmarks \nRegulation \nAmounts payable on the Class A Notes are calculated by reference to Euribor, which is provided by the European Money Markets Institute (\"EMMI\"). Euribor is an interest rate benchmark \nwithin the meaning of Regulation (EU) 2016/1011) (as amended, the \"EU Benchmarks Regulation\"). As at the date of this Prospectus, EMMI, in respect of Euribor appears on the register \nof administrators and benchmarks established and maintained by ESMA pursuant to Article 36 of the EU Benchmarks Regulation.  \nSignificant Investor It is expected that the Seller and/or its respective affiliates will on the Closing Date, purchase the Class B Notes and the Class C Notes (or substantial part(s) thereof). \nUse of proceeds \u2013 \nSecured Green \nCollateralised Notes \nThe Issuer will use the net proceeds from the issue of the Secured Green Collateralised Notes exclusively to purchase Mortgage Receivables pursuant to the Mortgage Receivables Purchase \nAgreement. An amount equal to EUR 811,681.42 will be deposited in the Construction Deposit Account in order to reflect those parts of the Mortgage Loans comprising Construction \nDeposits.  \nStatus of Secured \nGreen Collateralised \nNotes as \"green bond\"  \nThe Secured Green Collateralised Notes are intended to be aligned with the Green Bond Principles, as 'Secured Green Collateral Bond' as defined in the Green Bond Principles in effect as \nat the date of this Prospectus. The Green Bond Principles are voluntary process guidelines that include four core components: (i) use of proceeds, (ii) process for project evaluation and \nselection, (iii) management of proceeds and (iv) reporting. The Green Bond Principles are further described in Section 6.6 (Green Bond Principles and Energy Performance Certificates). \nThe Secured Green Collateralised Notes are not a \"European green bond\" or \"EuGB\" under the EUGBS Regulation and do not comply with the requirements set out therein. Each of the \nMortgage Receivables (including those relating to Mortgage Loans where part of the loan comprises a Construction Deposit) will be required to meet, among other things, the Eligibility \nCriteria and the Green Eligibility Criteria as at the relevant Transfer Date of such Mortgage Receivable, meaning, in relation to the Initial Portfolio, the Initial Cut-Off Date and, in relation \nto Mortgage Loans under which New Mortgage Receivables arise, the relevant Cut-Off Date. In order to seek alignment with Article 3 of the EU Taxonomy Regulation, including by virtue \nof alignment with the EU Taxonomy TSC building requirement, the Green Eligibility Criteria require that the Mortgaged Asset, on which the relevant Mortgage Loan from which such \nMortgage Receivable arises is secured, is assigned: (1) if it is built before 1 January 2021: a definitive Energy Performance Certificate of at least, \"A\" (based on an energy performance \ndemand determination method prescribed or permitted under applicable legislation at the relevant time that the Energy Performance Certificate was issued or otherwise referred to in the \nEnergy Performance Certificate, whereby (information in respect of) the most recent Energy Performance Certificate available to the Seller on the relevant Cut-Off Date shall be used to "
+          },
+          {
+            "page": 5,
+            "text": "- v - \n \n \nmonitor compliance with the Green Eligibility Criteria); (2) if it is built after 31 December 2020, a definitive Energy Performance Certificate confirming a maximum primary energy \ndemand (PED) of: (i) 27kWh/m2 per year if the Mortgaged Asset is a residential house (woning) or (ii) 45kWh/m2 per year if the Mortgaged Asset is a residential apartment (appartement) \n(in each case based on an energy performance determination method prescribed or permitted under applicable legislation at the relevant time that the Energy Performance Certificate was \nissued or otherwise referred to in the Energy Performance Certificate, whereby (information in respect of) the most recent Energy Performance Certificate available to the Seller on the \nrelevant Cut-Off Date shall be used to monitor compliance with the Green Eligibility Criteria), and provided that such assigned Energy Performance Certificate has not expired on the \nrelevant Cut-Off Date immediately prior to the Transfer Date of such Mortgage Receivable. In addition, the Eligibility Criteria include that the relevant Mortgaged Asset has been screened \nby the Seller by applying the Seller DNSH model and was scored as not sensitive in accordance with the Seller DNSH model, and by adopting the Seller's Country Risk MSS Approach, \nthe Issuer believes the Mortgaged Assets meet the minimum safeguards requirements (to the extent applicable) in Articles 3 and 18 of the EU Taxonomy Regulation. \n \nInvesting in the Notes involves certain risks. The principal risk factors that may affect the abilities of the Issuer to fulfil its obligations under the Notes are discussed in Section 1 (Risk Factors) of this \nProspectus. \nArranger  \nING Bank N.V. \n \nJoint Lead Managers \nING BofA Securities Lloyds Bank Corporate Markets Wertpapierhandelsbank \n "
+          },
+          "... (279 more items)"
+        ],
+        "document": "green-lion-2026-1-prospectus.pdf"
+      },
+      "output": {
+        "payload": {
+          "document": "green-lion-2026-1-prospectus.pdf",
+          "waterfall_steps": [
+            {
+              "rank": 1,
+              "beneficiary": "Security Trustee",
+              "amount_basis": "Any fees, expenses or other amounts or liabilities which are due and payable to the Security Trustee on such Notes Payment Date",
+              "conditions": "none",
+              "page": 158,
+              "excerpt": "first, any fees, expenses or other amounts or liabilities which are due and payable to the Security Trustee on such Notes Payment Date;"
+            },
+            {
+              "rank": 2,
+              "beneficiary": "Paying Agent, Servicer, Issuer Administrator, Issuer Account Bank, Directors, stock exchange, auditors/legal counsel/tax advisers, Credit Rating Agencies, independent accountant, custodian, taxing authority, Benchmark Rate Modification Costs, Data Key Trustee, other creditors",
+              "amount_basis": "Any fees, expenses or other amounts or liabilities due and payable, on a pari passu and pro rata basis",
+              "conditions": "none",
+              "page": 158,
+              "excerpt": "second, on a pari passu and pro rata basis, any fees, expenses or other amounts or liabilities due and payable to any of (1) the Paying Agent, (2) the Servicer, (3) the Issuer Administrator..."
+            },
+            {
+              "rank": 3,
+              "beneficiary": "Swap Counterparty",
+              "amount_basis": "Any amounts due and payable to the Swap Counterparty other than Subordinated Swap Payments, except for any Excluded Swap Amounts",
+              "conditions": "To the extent not paid from amounts standing to the credit of the relevant Swap Collateral Account or debited from the Swap Replacement Ledger",
+              "page": 158,
+              "excerpt": "third, to the extent not paid from amounts standing to the credit of the relevant Swap Collateral Account or debited from the Swap Replacement Ledger, any amounts, except for any Excluded Swap Amounts, due and payable to the Swap Counterparty other than Subordinated Swap Payments;"
+            },
+            {
+              "rank": 4,
+              "beneficiary": "Class A Noteholders",
+              "amount_basis": "All interest due (or accrued due) and payable on the Class A Notes, on a pari passu and pro rata basis",
+              "conditions": "none",
+              "page": 158,
+              "excerpt": "fourth, on a pari passu and pro rata basis, all interest due (or accrued due) and payable on the Class A Notes;"
+            },
+            {
+              "rank": 5,
+              "beneficiary": "Class A Principal Deficiency Ledger",
+              "amount_basis": "Amount required to replenish any shortfall reflected in the Class A Principal Deficiency Ledger until the debit balance is reduced to nil",
+              "conditions": "none",
+              "page": 158,
+              "excerpt": "fifth, the amount required to replenish any shortfall reflected in the Class A Principal Deficiency Ledger until the debit balance, if any, on the Class A Principal Deficiency Ledger is reduced to nil;"
+            },
+            {
+              "rank": 6,
+              "beneficiary": "Reserve Account",
+              "amount_basis": "Amount required to replenish the Reserve Account up to the Reserve Account Target Level",
+              "conditions": "none",
+              "page": 158,
+              "excerpt": "sixth, the amount required to replenish the Reserve Account up to the Reserve Account Target Level;"
+            },
+            {
+              "rank": 7,
+              "beneficiary": "Issuer Expense Account",
+              "amount_basis": "Amount required to replenish the Issuer Expense Account to the Minimum Required Expense Account Amount",
+              "conditions": "If any",
+              "page": 158,
+              "excerpt": "seventh, the amount required to replenish the Issuer Expense Account to the Minimum Required Expense Account Amount (if any);"
+            },
+            {
+              "rank": 8,
+              "beneficiary": "Class B Principal Deficiency Ledger",
+              "amount_basis": "Amount required to replenish any shortfall reflected in the Class B Principal Deficiency Ledger until the debit balance is reduced to nil",
+              "conditions": "none",
+              "page": 158,
+              "excerpt": "eighth, the amount required to replenish any shortfall reflected in the Class B Principal Deficiency Ledger until the debit balance, if any, on the Class B Principal Deficiency Ledger is reduced to nil;"
+            },
+            {
+              "rank": 9,
+              "beneficiary": "Swap Counterparty (Subordinated Swap Payments)",
+              "amount_basis": "Subordinated Swap Payments due and payable to the Swap Counterparty",
+              "conditions": "To the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger",
+              "page": 158,
+              "excerpt": "ninth, to the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger, Subordinated Swap Payments due and p"
+            },
+            {
+              "rank": 10,
+              "beneficiary": "Class C Noteholders",
+              "amount_basis": "Principal amounts due and payable on the Class C Notes (from Available Revenue Funds)",
+              "conditions": "Subject to Condition 4.7 (Class C Notes) and the Revenue Priority of Payments; Reserve Account Target Level reduced to zero when all Class A interest and principal paid",
+              "page": 88,
+              "excerpt": "Payments of principal on the Class C Notes shall be made from the Available Revenue Funds or from funds available for distribution in accordance with the Post-Enforcement Priority of Payments"
+            },
+            {
+              "rank": 11,
+              "beneficiary": "Seller",
+              "amount_basis": "Any Deferred Purchase Price Instalment",
+              "conditions": "Residual after all higher priority items paid under Revenue Priority of Payments",
+              "page": 159,
+              "excerpt": "fourth, to pay any Deferred Purchase Price Instalment to the Seller."
+            },
+            {
+              "rank": 101,
+              "beneficiary": "New Mortgage Receivables (Seller)",
+              "amount_basis": "Initial Purchase Price of any New Mortgage Receivables up to the New Mortgage Receivables Available Amount",
+              "conditions": "During the Revolving Period only; subject to Additional Purchase Conditions being met",
+              "page": 159,
+              "excerpt": "first, during the Revolving Period, in or towards satisfaction of the Initial Purchase Price of any New Mortgage Receivables, subject to the Additional Purchase Conditions being met, up to the New Mortgage Receivables Available Amount;"
+            },
+            {
+              "rank": 102,
+              "beneficiary": "Class A Noteholders (principal)",
+              "amount_basis": "Principal amounts due and payable on the Class A Notes, on a pari passu and pro rata basis, until fully redeemed",
+              "conditions": "No Enforcement Notice delivered; subject to Condition 4.6",
+              "page": 159,
+              "excerpt": "second, in or towards, on a pari passu and pro rata basis, satisfaction of principal amounts due and payable on the Class A Notes, until fully redeemed in accordance with the Conditions;"
+            },
+            {
+              "rank": 103,
+              "beneficiary": "Class B Noteholders (principal)",
+              "amount_basis": "Principal amounts due and payable on the Class B Notes, on a pari passu and pro rata basis, until fully redeemed",
+              "conditions": "No Enforcement Notice delivered; Class A Notes must be fully redeemed first",
+              "page": 159,
+              "excerpt": "third, in or towards, on a pari passu and pro rata basis satisfaction of principal amounts due and payable on the Class B Notes, until fully redeemed in accordance with the Conditions;"
+            },
+            {
+              "rank": 104,
+              "beneficiary": "Seller",
+              "amount_basis": "Any Deferred Purchase Price Instalment",
+              "conditions": "Residual after all higher priority items paid under Redemption Priority of Payments",
+              "page": 159,
+              "excerpt": "fourth, to pay any Deferred Purchase Price Instalment to the Seller."
+            },
+            {
+              "rank": 201,
+              "beneficiary": "Security Trustee (Post-Enforcement)",
+              "amount_basis": "Any fees, expenses or other amounts or liabilities which are due and payable to the Security Trustee",
+              "conditions": "Following delivery of Enforcement Notice by Security Trustee",
+              "page": 159,
+              "excerpt": "first, any fees, expenses or other amounts or liabilities which are due and payable to the Security Trustee on such date;"
+            },
+            {
+              "rank": 202,
+              "beneficiary": "Paying Agent, Servicer, Issuer Administrator, Account Bank, Directors, stock exchange, auditors/legal counsel/tax advisers, Credit Rating Agencies, independent accountant, custodian, taxing authority, Benchmark Rate Modification Costs, Data Key Trustee, other creditors (Post-Enforcement)",
+              "amount_basis": "Any fees, expenses or other amounts or liabilities due and payable, on a pari passu and pro rata basis",
+              "conditions": "Following delivery of Enforcement Notice by Security Trustee",
+              "page": 159,
+              "excerpt": "second, on a pari passu and pro rata basis, any fees, expenses or other amounts or liabilities which are due and payable to any of (1) the Paying Agent, (2) the Servicer, (3) the Issuer Administrator..."
+            },
+            {
+              "rank": 203,
+              "beneficiary": "Swap Counterparty (Post-Enforcement, non-subordinated)",
+              "amount_basis": "Amounts due and payable to the Swap Counterparty other than Subordinated Swap Payments, except Excluded Swap Amounts",
+              "conditions": "Following delivery of Enforcement Notice; to the extent not paid from Swap Collateral Account or Swap Replacement Ledger",
+              "page": 159,
+              "excerpt": "third, to the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger, any amounts, except for any Excluded Swap Amounts..."
+            },
+            {
+              "rank": 204,
+              "beneficiary": "Class A Noteholders (interest, Post-Enforcement)",
+              "amount_basis": "All interest due (or accrued due) and payable on the Class A Notes, on a pari passu and pro rata basis",
+              "conditions": "Following delivery of Enforcement Notice by Security Trustee",
+              "page": 159,
+              "excerpt": "fourth, on a pari passu and pro rata basis according to the amounts payable, all interest then due and payable on the Class A Notes;"
+            },
+            {
+              "rank": 205,
+              "beneficiary": "Class A Noteholders (principal, Post-Enforcement)",
+              "amount_basis": "All principal then due and payable on the Class A Notes, on a pari passu and pro rata basis",
+              "conditions": "Following delivery of Enforcement Notice by Security Trustee",
+              "page": 159,
+              "excerpt": "fifth, on a pari passu and pro rata basis according to the amounts payable, all principal then due and payable on the Class A Notes;"
+            },
+            {
+              "rank": 206,
+              "beneficiary": "Swap Counterparty (Subordinated Swap Payments, Post-Enforcement)",
+              "amount_basis": "Subordinated Swap Payments due and payable to the Swap Counterparty",
+              "conditions": "Following delivery of Enforcement Notice; to the extent not paid from Swap Collateral Account or Swap Replacement Ledger",
+              "page": 159,
+              "excerpt": "sixth, to the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger, Subordinated Swap Payments due and payable..."
+            },
+            {
+              "rank": 207,
+              "beneficiary": "Class C Noteholders (principal, Post-Enforcement)",
+              "amount_basis": "All principal then due and payable on the Class C Notes, on a pari passu and pro rata basis",
+              "conditions": "Following delivery of Enforcement Notice by Security Trustee",
+              "page": 160,
+              "excerpt": "seventh, on a pari passu and pro rata basis according to the amounts payable, all principal then due and payable on the Class C Notes;"
+            },
+            {
+              "rank": 208,
+              "beneficiary": "Seller",
+              "amount_basis": "Any Deferred Purchase Price Instalment",
+              "conditions": "Following delivery of Enforcement Notice; residual after all higher priority items paid",
+              "page": 160,
+              "excerpt": "eighth, any Deferred Purchase Price Instalment to the Seller."
+            }
+          ]
+        },
+        "confidence": 0.46,
+        "citations": [
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "first, any fees, expenses or other amounts or liabilities which are due and payable to the Security Trustee on such Notes Payment Date;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "second, on a pari passu and pro rata basis, any fees, expenses or other amounts or liabilities due and payable to any of (1) the Paying Agent, (2) the Servicer, (3) the Issuer Administrator..."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "third, to the extent not paid from amounts standing to the credit of the relevant Swap Collateral Account or debited from the Swap Replacement Ledger, any amounts, except for any Excluded Swap Amounts"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "fourth, on a pari passu and pro rata basis, all interest due (or accrued due) and payable on the Class A Notes;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "fifth, the amount required to replenish any shortfall reflected in the Class A Principal Deficiency Ledger until the debit balance, if any, on the Class A Principal Deficiency Ledger is reduced to nil"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "sixth, the amount required to replenish the Reserve Account up to the Reserve Account Target Level;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "seventh, the amount required to replenish the Issuer Expense Account to the Minimum Required Expense Account Amount (if any);"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "eighth, the amount required to replenish any shortfall reflected in the Class B Principal Deficiency Ledger until the debit balance, if any, on the Class B Principal Deficiency Ledger is reduced to ni"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=158",
+            "excerpt": "ninth, to the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger, Subordinated Swap Payments due and p"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=88",
+            "excerpt": "Payments of principal on the Class C Notes shall be made from the Available Revenue Funds or from funds available for distribution in accordance with the Post-Enforcement Priority of Payments"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "fourth, to pay any Deferred Purchase Price Instalment to the Seller."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "first, during the Revolving Period, in or towards satisfaction of the Initial Purchase Price of any New Mortgage Receivables, subject to the Additional Purchase Conditions being met, up to the New Mor"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "second, in or towards, on a pari passu and pro rata basis, satisfaction of principal amounts due and payable on the Class A Notes, until fully redeemed in accordance with the Conditions;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "third, in or towards, on a pari passu and pro rata basis satisfaction of principal amounts due and payable on the Class B Notes, until fully redeemed in accordance with the Conditions;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "fourth, to pay any Deferred Purchase Price Instalment to the Seller."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "first, any fees, expenses or other amounts or liabilities which are due and payable to the Security Trustee on such date;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "second, on a pari passu and pro rata basis, any fees, expenses or other amounts or liabilities which are due and payable to any of (1) the Paying Agent, (2) the Servicer, (3) the Issuer Administrator."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "third, to the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger, any amounts, except for any Excluded Swap Amounts..."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "fourth, on a pari passu and pro rata basis according to the amounts payable, all interest then due and payable on the Class A Notes;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "fifth, on a pari passu and pro rata basis according to the amounts payable, all principal then due and payable on the Class A Notes;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=159",
+            "excerpt": "sixth, to the extent not paid from amounts standing to the credit of any Swap Collateral Account or debited from the Swap Replacement Ledger, Subordinated Swap Payments due and payable..."
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=160",
+            "excerpt": "seventh, on a pari passu and pro rata basis according to the amounts payable, all principal then due and payable on the Class C Notes;"
+          },
+          {
+            "source": "green-lion-2026-1-prospectus.pdf",
+            "location": "page=160",
+            "excerpt": "eighth, any Deferred Purchase Price Instalment to the Seller."
+          }
+        ],
+        "issues": []
+      },
+      "duration_ms": 41843.0,
+      "llm_calls": []
+    }
+  ]
+}

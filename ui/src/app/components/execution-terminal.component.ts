@@ -559,7 +559,7 @@ export class ExecutionTerminalComponent implements AfterViewChecked {
           entries.push({
             type: 'complete',
             timestamp: ts,
-            content: `${p['step_count']} steps · ${this.state.elapsedMs() > 0 ? (this.state.elapsedMs() / 1000).toFixed(1) + 's' : ''} · ${p['review_queue_size'] ?? 0} items for human review`,
+            content: `${p['step_count']} steps · ${this.state.elapsedMs() > 0 ? (this.state.elapsedMs() / 1000).toFixed(1) + 's' : ''} · ${p['review_queue_size'] ?? 0} items for human review · synthesising answer…`,
           });
           break;
 

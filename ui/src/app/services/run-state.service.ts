@@ -3,6 +3,10 @@ import { Subscription } from 'rxjs';
 import { ApiService, RecipeInfo, UseCaseInfo, DealResponse, HealthResponse } from './api.service';
 import { SseService, RunEventData } from './sse.service';
 
+// Synthesis + server reload can take 15-20s after run_finished fires.
+const RESULT_RETRY_ATTEMPTS = 20;
+const RESULT_RETRY_DELAY_MS = 1500;
+
 export type RunPhase =
   | 'idle'
   | 'planning'
@@ -133,34 +137,79 @@ export class RunStateService {
     this.sub?.unsubscribe();
     this.sub = this.sse.stream(url).subscribe({
       next: (ev) => this.handleEvent(ev),
-      error: (err) => {
-        this.phase.set('error');
-        this.error.set(err?.message ?? 'Stream connection lost');
+      error: () => {
+        // SSE dropped — server may have reloaded.
+        // Try to recover the result from disk before declaring an error.
+        const id = this.runId();
+        if (!id) {
+          this.phase.set('error');
+          this.error.set('Stream connection lost');
+          return;
+        }
+        this._fetchResultWithRetry(id, RESULT_RETRY_ATTEMPTS, RESULT_RETRY_DELAY_MS, () => {
+          // Only set error if recovery also failed
+          if (this.phase() !== 'done') {
+            this.phase.set('error');
+            this.error.set('Stream connection lost and run result unavailable');
+          }
+        });
       },
       complete: () => {
         // Stream closed without an explicit run_finished/run_error event.
-        // Poll the result endpoint once to resolve the final state.
         const id = this.runId();
         if (!id || this.phase() === 'done' || this.phase() === 'error') return;
-        this.api.getResult(id).subscribe({
-          next: (status) => {
-            if (status.status === 'error') {
-              this.phase.set('error');
-              this.error.set(status.error ?? 'Run failed');
-              this.finishedAt.set(Date.now());
-            } else if (status.status === 'done' && status.result) {
-              this.phase.set('done');
-              this.result.set(status.result as Record<string, unknown>);
-              this.finishedAt.set(Date.now());
-            }
-          },
-          error: () => {
-            if (this.phase() !== 'done') {
-              this.phase.set('error');
-              this.error.set('Run status unavailable');
-            }
-          },
+        this._fetchResultWithRetry(id, RESULT_RETRY_ATTEMPTS, RESULT_RETRY_DELAY_MS, () => {
+          if (this.phase() !== 'done') {
+            this.phase.set('error');
+            this.error.set('Run status unavailable');
+          }
         });
+      },
+    });
+  }
+
+  /**
+   * Fetch the full result, retrying on failure to survive a server reload.
+   * On each successful response, applies the result if the run is done.
+   * If all attempts fail, calls onFailure().
+   */
+  private _fetchResultWithRetry(
+    runId: string,
+    attemptsLeft: number,
+    delayMs: number,
+    onFailure: () => void,
+  ): void {
+    this.api.getResult(runId).subscribe({
+      next: (status) => {
+        if (status.status === 'error') {
+          this.phase.set('error');
+          this.error.set(status.error ?? 'Run failed');
+          this.finishedAt.set(Date.now());
+        } else if (status.status === 'done' && status.result) {
+          this.phase.set('done');
+          this.result.set(status.result as Record<string, unknown>);
+          this.finishedAt.set(Date.now());
+        } else if (status.status === 'pending' || status.status === 'running') {
+          // Still running — retry
+          if (attemptsLeft > 1) {
+            setTimeout(
+              () => this._fetchResultWithRetry(runId, attemptsLeft - 1, delayMs, onFailure),
+              delayMs,
+            );
+          } else {
+            onFailure();
+          }
+        }
+      },
+      error: () => {
+        if (attemptsLeft > 1) {
+          setTimeout(
+            () => this._fetchResultWithRetry(runId, attemptsLeft - 1, delayMs, onFailure),
+            delayMs,
+          );
+        } else {
+          onFailure();
+        }
       },
     });
   }
@@ -226,23 +275,21 @@ export class RunStateService {
         break;
 
       case 'run_finished':
-        this.phase.set('done');
+        // The executor is done but synthesis (a second LLM call) is still running
+        // on the server — typically takes another 10-20s. Stay in 'verifying' phase
+        // so the UI shows a loading state rather than a blank result panel.
+        // _fetchResultWithRetry polls and transitions to 'done' once the result is ready.
+        this.phase.set('verifying');
         this.finishedAt.set(Date.now());
-        // run_finished payload is thin ({step_count, review_queue_size, final_step_id}).
-        // Fetch the full result (answer, comparisons, citations, verification, etc.)
-        // from the REST endpoint. Store the thin payload as a fallback in case the
-        // fetch fails.
-        this.result.set(ev.payload as Record<string, unknown>);
         {
           const runId = this.runId();
           if (runId) {
-            this.api.getResult(runId).subscribe({
-              next: (status) => {
-                if (status.result) this.result.set(status.result as Record<string, unknown>);
-              },
-              error: () => {
-                /* keep thin payload already set */
-              },
+            this._fetchResultWithRetry(runId, RESULT_RETRY_ATTEMPTS, RESULT_RETRY_DELAY_MS, () => {
+              // All retries exhausted with no result — force done with thin payload
+              this.phase.set('done');
+              if (!this.result()) {
+                this.result.set(ev.payload as Record<string, unknown>);
+              }
             });
           }
         }

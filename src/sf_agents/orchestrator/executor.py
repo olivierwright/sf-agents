@@ -147,7 +147,37 @@ class Executor:
                     },
                 )
 
-                if output.confidence < self._config.confidence_floor:
+                # Never trigger HITL when the extractor has autonomously certified
+                # that the data is genuinely absent — it already exhausted all
+                # strategies and the synthesizer will explain the gap.
+                absence_certified = (
+                    isinstance(output.payload, dict)
+                    and bool(output.payload.get("absence_certified", False))
+                )
+                if absence_certified:
+                    self._emit(
+                        EventType.STEP_ABSENCE_CERTIFIED,
+                        {
+                            "step_id": step.step_id,
+                            "primitive": step.primitive,
+                            "absence_explanation": (
+                                output.payload.get("absence_explanation", "")
+                                if isinstance(output.payload, dict) else ""
+                            ),
+                            "gap_summary": (
+                                output.payload.get("gap_summary", "")
+                                if isinstance(output.payload, dict) else ""
+                            ),
+                            "strategies_tried": (
+                                output.payload.get("strategies_tried", [])
+                                if isinstance(output.payload, dict) else []
+                            ),
+                        },
+                    )
+
+                # Only trigger HITL on COMPLETE failure with no absence certification.
+                is_total_failure = output.confidence == 0.0 and not absence_certified
+                if is_total_failure and output.confidence < self._config.confidence_floor:
                     if self._ask_human is not None:
                         question = _generate_clarification_question(
                             step.step_id, step.primitive, output, plan.explanation
@@ -164,7 +194,10 @@ class Executor:
                             },
                         )
                         answer = self._ask_human(step.step_id, step.primitive, output, question)
-                        helped = not _user_cant_help(answer)
+                        # Decode numbered choices into actionable hint text before
+                        # deciding whether to retry (e.g. "2" for waterfall → page range)
+                        decoded_answer = _decode_answer(step.primitive, answer)
+                        helped = not _user_cant_help(answer, primitive=step.primitive)
                         confidence_before = output.confidence
                         retry_output: Optional[PrimitiveOutput] = None
 
@@ -172,7 +205,7 @@ class Executor:
                             # Retry the step with the analyst's hint injected
                             try:
                                 hint_args = dict(args)
-                                hint_args["context_hint"] = answer
+                                hint_args["context_hint"] = decoded_answer
                                 hint_inp = PrimitiveInput(args=hint_args)
                                 t_retry = _now_ms()
                                 retry_output = self._invoke(
@@ -343,14 +376,51 @@ def _human_review(
 _CANT_HELP_PHRASES = (
     "don't know", "dont know", "do not know", "figure it out", "not sure",
     "no idea", "skip", "idk", "n/a", "na", "just continue", "keep going",
-    "doesn't matter", "doesn't matter", "dont care", "don't care",
+    "doesn't matter", "dont care", "don't care", "continue", "proceed",
 )
 
+# Maps (primitive, numbered_choice) → decoded hint text for retry.
+# When an analyst picks a numbered option that encodes a page-range or
+# section name, we convert it to an actionable string before the retry.
+_CHOICE_HINTS: dict[tuple[str, str], str] = {
+    ("extractor.waterfall", "2"): "Section 5 (Credit Structure), pages 100-180",
+}
 
-def _user_cant_help(answer: str) -> bool:
-    """Return True when the analyst's answer signals they cannot provide useful guidance."""
-    lowered = answer.lower().strip()
-    return not lowered or any(p in lowered for p in _CANT_HELP_PHRASES)
+
+def _decode_answer(primitive: str, answer: str) -> str:
+    """Expand a bare numbered choice into an actionable hint for retry.
+
+    Returns the original answer unchanged if no expansion is registered.
+    """
+    stripped = answer.strip()
+    return _CHOICE_HINTS.get((primitive, stripped), answer)
+
+
+def _user_cant_help(answer: str, primitive: str = "") -> bool:
+    """Return True when the analyst's answer signals they cannot provide useful guidance.
+
+    Handles the numbered-choice format:
+      option "1" always means continue/skip (non-actionable).
+      option "2" meaning is primitive-dependent:
+        - definitions: "use regulatory definition" → non-actionable for retry.
+        - waterfall: "search Section 5, pages 100-180" → actionable.
+      option "3" bare (no extra text): treat as skip.
+    """
+    stripped = answer.strip()
+    lowered = stripped.lower()
+
+    if stripped == "1":
+        return True
+
+    # "2" is primitive-dependent: if we have a registered hint for it, it's actionable
+    if stripped == "2":
+        return (primitive, "2") not in _CHOICE_HINTS
+
+    # bare "3" with no extra detail — skip
+    if stripped == "3":
+        return True
+
+    return not stripped or any(p in lowered for p in _CANT_HELP_PHRASES)
 
 
 def _generate_clarification_question(
@@ -359,48 +429,76 @@ def _generate_clarification_question(
     output: PrimitiveOutput,
     plan_context: str,
 ) -> str:
-    """Generate a short, plain-language clarifying question for the human analyst.
+    """Generate a numbered-choice clarification for the analyst.
 
-    The question must be immediately actionable — no document jargon, no
-    multi-part structure. It tells the analyst exactly what was found, what is
-    missing, and offers a clear escape hatch ("or type 'skip' to continue").
+    This fires only on COMPLETE failure (confidence == 0, nothing found).
+    The question presents 3 concrete numbered options the analyst can action
+    immediately without needing to know the document's internal structure.
     """
-    # Build a plain-English summary of what was found vs missing
     payload = output.payload or {}
-    found_items: list[str] = []
     missing_items: list[str] = []
+    primitive_type = ""
+
     if isinstance(payload, dict):
-        for d in payload.get("definitions", []):
-            found_items.append(d.get("term", ""))
-        for s in payload.get("waterfall_steps", []):
-            found_items.append(f"waterfall step {s.get('rank','?')}")
-        for c in payload.get("covenants", []):
-            found_items.append(c.get("type", ""))
-    # Pull missing from issues text
+        # Work out what was being extracted
+        if "definitions" in payload:
+            primitive_type = "definitions"
+        elif "waterfall_steps" in payload:
+            primitive_type = "waterfall"
+        elif "covenants" in payload:
+            primitive_type = "covenants"
+
     for issue in output.issues:
-        if "No definition extracted for:" in issue:
-            raw = issue.replace("No definition extracted for:", "").strip().rstrip(".")
-            missing_items.extend(t.strip() for t in raw.split(","))
+        for marker in ("No definition extracted for:", "LLM extraction failed:"):
+            if marker in issue:
+                raw = issue.replace(marker, "").strip().rstrip(".")
+                missing_items.extend(t.strip() for t in raw.split(",") if t.strip())
 
-    found_str = ", ".join(found_items[:4]) if found_items else "nothing"
-    missing_str = ", ".join(missing_items[:4]) if missing_items else "some items"
+    missing_str = ", ".join(missing_items[:5]) if missing_items else "the requested items"
 
-    prompt = (
-        "You are helping an investor analyse a structured finance deal.\n\n"
-        f"An automated step ('{step_id}') searched the document and found: {found_str}.\n"
-        f"It could NOT find: {missing_str}.\n"
-        f"Confidence score: {output.confidence:.0%}.\n\n"
-        "Write ONE plain, short question (max 2 sentences) asking the analyst where to "
-        "look for the missing information. Do NOT use legal jargon or ask about document "
-        "structure the analyst may not know. End with: "
-        "\"(Or type 'skip' to continue without this information.)\""
-    )
+    # Build domain-aware numbered options based on primitive type
+    if primitive_type == "definitions":
+        prompt = (
+            "You are a structured finance assistant. An automated extraction step "
+            f"({step_id}) searched the prospectus and found NOTHING for: {missing_str}.\n\n"
+            "Generate a short message (4–6 lines) telling the analyst the extraction "
+            "found nothing, then offer exactly 3 numbered choices:\n"
+            "  1. Continue without these terms (use what was found elsewhere)\n"
+            "  2. These terms may follow a regulatory definition (e.g. EBA/CRR) rather "
+            "than being defined in the prospectus itself — treat them as regulatory references\n"
+            "  3. Provide a specific page number or section name to search instead\n\n"
+            "End with: 'Type 1, 2, or 3 (or paste a page number / section name):'"
+        )
+    elif primitive_type == "waterfall":
+        prompt = (
+            "You are a structured finance assistant. An automated step "
+            f"({step_id}) could not locate the Priority of Payments waterfall.\n\n"
+            "Generate a short message (4–6 lines) then offer 3 numbered choices:\n"
+            "  1. Skip the waterfall extraction and continue with other data\n"
+            "  2. The waterfall is in Section 5 (Credit Structure) — search pages 100-180\n"
+            "  3. Provide the exact page or section name where the waterfall appears\n\n"
+            "End with: 'Type 1, 2, or 3 (or paste a page number / section name):'"
+        )
+    else:
+        prompt = (
+            "You are a structured finance assistant. An automated step "
+            f"({step_id}) found nothing for: {missing_str}.\n\n"
+            "Generate a short message (4–6 lines) then offer 3 numbered choices:\n"
+            "  1. Skip these items and continue with other extracted data\n"
+            "  2. These items may be defined by regulatory cross-reference, not in the document\n"
+            "  3. Provide the page or section where these items can be found\n\n"
+            "End with: 'Type 1, 2, or 3 (or paste a page number / section name):'"
+        )
+
     try:
-        return complete(prompt, max_tokens=120, temperature=0.2).strip()
+        return complete(prompt, max_tokens=200, temperature=0.2).strip()
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to generate clarification question: %s", exc)
         return (
-            f"I found {found_str} but couldn't locate {missing_str} in the document. "
-            "Do you know which section or page these appear on? "
-            "(Or type 'skip' to continue without this information.)"
+            f"I searched the document but found nothing for: {missing_str}.\n\n"
+            "How should I proceed?\n"
+            "  1. Continue without these items\n"
+            "  2. Treat them as regulatory definitions (EBA/CRR)\n"
+            "  3. Provide the page or section name where they appear\n\n"
+            "Type 1, 2, or 3 (or paste a page number / section name):"
         )

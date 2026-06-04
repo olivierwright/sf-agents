@@ -23,6 +23,7 @@ class EventType(str, enum.Enum):
     STEP_FINISHED = "step_finished"
     HUMAN_REVIEW_REQ = "human_review_req"
     HUMAN_CLARIFICATION_NEEDED = "human_clarification_needed"
+    STEP_ABSENCE_CERTIFIED = "step_absence_certified"
     VERIFICATION_DONE = "verification_done"
     RUN_FINISHED = "run_finished"
     RUN_ERROR = "run_error"

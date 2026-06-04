@@ -50,7 +50,11 @@ interface CitationGroup {
                 <span class="panel-empty-icon">◎</span>
                 <p>Results will appear here when the analysis completes.</p>
               </div>
-            } @else if (state.phase() === 'planning' || state.phase() === 'executing') {
+            } @else if (
+              state.phase() === 'planning' ||
+              state.phase() === 'executing' ||
+              (state.phase() === 'verifying' && !state.result())
+            ) {
               <div class="panel-loading">
                 <div class="loading-steps">
                   @for (i of [1, 2, 3, 4, 5, 6]; track i) {
@@ -59,7 +63,13 @@ interface CitationGroup {
                     </div>
                   }
                 </div>
-                <p class="loading-label">Orchestrating analysis…</p>
+                <p class="loading-label">
+                  {{
+                    state.phase() === 'verifying'
+                      ? 'Synthesising answer…'
+                      : 'Orchestrating analysis…'
+                  }}
+                </p>
               </div>
             } @else if (state.phase() === 'error') {
               <div class="error-card">
@@ -177,6 +187,18 @@ interface CitationGroup {
                 <div class="answer-section">
                   <div class="sec-label">ANSWER</div>
                   <pre class="answer-json">{{ fmtAnswer(result['answer']) }}</pre>
+                </div>
+              }
+
+              <!-- Safety net: answer present but no answer rendered yet (still loading) -->
+              @if (
+                !result['answer'] &&
+                !result['comparisons'] &&
+                !result['assessments'] &&
+                waterfallSteps(result['answer']).length === 0
+              ) {
+                <div class="panel-loading" style="margin-top: 1rem">
+                  <p class="loading-label">Loading answer…</p>
                 </div>
               }
 
@@ -1136,6 +1158,21 @@ export class ResultsPanelComponent {
   readonly traceData = signal<Record<string, unknown> | null>(null);
   readonly traceLoading = signal(false);
 
+  constructor() {
+    // Auto-load trace when the run transitions to 'done' while Trace tab is active
+    effect(() => {
+      const phase = this.state.phase();
+      if (
+        phase === 'done' &&
+        this.activeTab() === 'trace' &&
+        !this.traceData() &&
+        !this.traceLoading()
+      ) {
+        this.loadTrace();
+      }
+    });
+  }
+
   readonly tabs: { id: Tab; label: string }[] = [
     { id: 'answer', label: 'Answer' },
     { id: 'citations', label: 'Citations' },
@@ -1276,16 +1313,19 @@ export class ResultsPanelComponent {
   loadTrace(attempt = 0): void {
     const id = this.state.runId();
     if (!id) return;
-    this.traceData.set(null);
-    this.traceLoading.set(true);
+    if (attempt === 0) {
+      this.traceData.set(null);
+      this.traceLoading.set(true);
+    }
     this.api.getTrace(id).subscribe({
       next: (data) => {
         this.traceData.set(data);
         this.traceLoading.set(false);
       },
       error: (err) => {
-        // Trace file may not be written yet — retry up to 3 times with backoff
-        if (err?.status === 404 && attempt < 3) {
+        // Trace file is written after synthesis (~15-20s after run_finished).
+        // Retry up to 15 times with 1.5s backoff.
+        if ((err?.status === 404 || err?.status === 0) && attempt < 15) {
           setTimeout(() => this.loadTrace(attempt + 1), 1500);
         } else {
           this.traceLoading.set(false);
@@ -1296,8 +1336,16 @@ export class ResultsPanelComponent {
 
   selectTab(tab: Tab): void {
     this.activeTab.set(tab);
-    if (tab === 'trace' && this.state.phase() === 'done') {
-      this.loadTrace();
+    // Load trace when tab is selected and run is done or finishing
+    if (tab === 'trace') {
+      const phase = this.state.phase();
+      if (
+        (phase === 'done' || phase === 'verifying') &&
+        !this.traceData() &&
+        !this.traceLoading()
+      ) {
+        this.loadTrace();
+      }
     }
   }
 

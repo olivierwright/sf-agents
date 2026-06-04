@@ -14,15 +14,15 @@ export class SseService {
   /** Reactive connection state. */
   readonly state = signal<SseState>('idle');
 
-  private maxRetries = 3;
-  private retryDelay = 1000;
+  private maxRetries = 6;
+  private retryDelay = 1500;
 
   /**
    * Opens an SSE stream with automatic reconnect on transient failures.
    * Completes on run_finished / run_error. Errors after maxRetries exhausted.
    */
   stream(url: string): Observable<RunEventData> {
-    return new Observable<RunEventData>(subscriber => {
+    return new Observable<RunEventData>((subscriber) => {
       let retries = 0;
       let es: EventSource | null = null;
       let closed = false;

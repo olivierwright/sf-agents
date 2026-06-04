@@ -263,11 +263,26 @@ def _synthesize_answer(
     citations: list,
     tracer=None,
 ) -> str:
-    """Use the LLM to produce a proper narrative answer from extracted data."""
+    """Use the LLM to produce a proper narrative answer from extracted data.
+
+    Gap-aware: inspects each step's payload for absence_certified=True and
+    gap_summary, and includes these in the prompt so the LLM explains missing
+    data honestly rather than ignoring it.
+    """
     # Build a concise summary of extracted outputs (skip huge payloads)
     output_summary = []
+    gap_notes: list[str] = []
+
     for step_id, out in outputs.items():
         payload = out.payload
+
+        # Collect absence certifications to surface as explicit gaps
+        if isinstance(payload, dict) and payload.get("absence_certified"):
+            gap_summary = payload.get("gap_summary") or payload.get("absence_explanation", "")
+            if gap_summary:
+                gap_notes.append(f"[{step_id}] {gap_summary}")
+            continue  # don't add an empty payload to output_summary
+
         if isinstance(payload, dict) and len(str(payload)) < 800:
             output_summary.append(f"[{step_id}]: {json.dumps(payload, default=str)[:600]}")
         elif isinstance(payload, list) and len(payload) <= 10:
@@ -290,11 +305,20 @@ def _synthesize_answer(
                 f"  A: {c['answer']}"
             )
         if unhelpful:
-            missing_steps = ", ".join(c["step_id"] for c in unhelpful)
-            lines.append(
-                f"• Steps [{missing_steps}]: analyst could not provide guidance. "
-                "State clearly in your answer that these items could not be confirmed "
-                "from the available document pages, and do NOT speculate about their content."
+            for c in unhelpful:
+                ans = (c.get("answer") or "").strip()
+                if ans == "2":
+                    lines.append(
+                        f"• Step '{c['step_id']}': analyst confirmed these terms follow "
+                        "a regulatory definition (EBA/CRR Article 178) rather than having "
+                        "standalone definitions in the document. Reference the regulatory "
+                        "standard in your answer, do not claim the document defines them."
+                    )
+                else:
+                    lines.append(
+                        f"• Step '{c['step_id']}': analyst could not locate these terms. "
+                        "State explicitly in your answer that no formal definition was found "
+                        "in the available document pages — do NOT speculate."
             )
         clar_text = "\n".join(lines)
 
@@ -306,6 +330,18 @@ def _synthesize_answer(
             for c in cite_sample
         )
 
+    gap_text = ""
+    if gap_notes:
+        gap_text = (
+            "\n\nDATA GAPS — the following data could NOT be extracted from the documents "
+            "(exhaustive automated search confirmed absence or non-standard formatting):\n"
+            + "\n".join(f"  • {note}" for note in gap_notes)
+            + "\n\nIMPORTANT: You MUST include a 'Data Gaps' section in your answer that "
+            "explicitly names each missing data item, explains why it matters for the "
+            "analysis, and describes what analytical conclusions cannot be drawn without it. "
+            "Do NOT speculate on values for missing data."
+        )
+
     prompt = (
         "You are a structured finance analyst. Using the extracted data below, "
         "write a clear, well-structured answer to the investor's question. "
@@ -313,7 +349,7 @@ def _synthesize_answer(
         "Aim for 3–5 focused paragraphs. Do not include preamble like 'Based on the analysis…'.\n\n"
         f"QUESTION: {question}\n\n"
         f"EXTRACTED DATA:\n" + "\n".join(output_summary) +
-        clar_text + cite_text
+        clar_text + cite_text + gap_text
     )
     if tracer:
         tracer.log_step_start(
@@ -493,8 +529,16 @@ def _run_question_worker(
                 citations=all_citations,
                 tracer=tracer,
             )
-            # Aggregate confidence across all steps (exclude zero-confidence failures)
-            step_confs = [o.confidence for o in result.outputs.values() if o.confidence > 0]
+            # Aggregate confidence across all steps.
+            # Absence-certified steps contribute their (high) confidence to the
+            # run score — they are not failures. Zero-confidence non-certified
+            # steps are excluded (they are genuine failures).
+            step_confs = []
+            for o in result.outputs.values():
+                if o.confidence > 0:
+                    step_confs.append(o.confidence)
+                elif isinstance(o.payload, dict) and o.payload.get("absence_certified"):
+                    step_confs.append(o.confidence)  # include certified absence (could be 0.75+)
             run_confidence = round(sum(step_confs) / len(step_confs), 4) if step_confs else 0.0
             answer = narrative or _build_fallback_answer(question, result.outputs) or (final.payload if final else None)
             record.result = {
@@ -515,8 +559,6 @@ def _run_question_worker(
         if trace_path and record.result:
             record.result["trace_path"] = trace_path
         record.status = "done"
-        # Persist result to disk so it survives server reloads
-        _persist_result(cfg, run_id, record)
 
     except Exception as exc:  # noqa: BLE001
         import logging
@@ -527,8 +569,6 @@ def _run_question_worker(
             pass
         record.error = str(exc)
         record.status = "error"
-        # Persist error state to disk so it survives server reloads
-        _persist_result(cfg, run_id, record)
         # Emit run_error so the SSE client transitions to the error phase
         from sf_agents.orchestrator.events import EventType, RunEvent
         try:
@@ -536,8 +576,18 @@ def _run_question_worker(
         except Exception:  # noqa: BLE001
             pass
     finally:
+        # Send the SSE close sentinel FIRST so the client stream ends cleanly,
+        # then write files to disk.  File writes trigger watchfiles reloads —
+        # doing them after the sentinel minimises the chance of a reload
+        # killing the connection while the client is still reading it.
         if record.loop and not record.loop.is_closed():
-            asyncio.run_coroutine_threadsafe(record.queue.put(None), record.loop)
+            fut = asyncio.run_coroutine_threadsafe(record.queue.put(None), record.loop)
+            try:
+                fut.result(timeout=2.0)  # wait until sentinel is on the queue
+            except Exception:  # noqa: BLE001
+                pass
+        # Now safe to write files — the SSE stream is finished
+        _persist_result(cfg, run_id, record)
 
 
 # ---------------------------------------------------------------------------

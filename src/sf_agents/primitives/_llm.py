@@ -143,22 +143,31 @@ def complete_json(
 
 
 def _extract_json(raw: str) -> Any:
-    """Parse JSON from a model reply, tolerating fences/prose around it.
+    """Parse JSON from a model reply, tolerating fences/prose and truncation.
 
-    Three-pass strategy:
+    Four-pass strategy:
     1. Direct parse (fast, no allocation).
-    2. Fast truncation recovery: find the last complete object boundary and
-       close the array there. Handles the common case where max_tokens cuts
-       off a long JSON array mid-item.
-    3. Exhaustive reverse scan: shrink from the end one char at a time
-       (slow but catches edge cases like prose after the JSON).
+    2. Fast truncation recovery for truncated arrays: find the last complete
+       item boundary, close the array. Handles max_tokens cuts mid-item.
+    3. Fast truncation recovery for truncated objects that contain arrays:
+       find the last complete nested-object boundary, close the inner array
+       and outer object. Handles truncated planner plans and similar shapes.
+    4. Exhaustive reverse scan: shrink from the end one char at a time —
+       slow but catches edge cases like prose appended after the JSON.
     """
     text = raw.strip()
-    if text.startswith("```"):
-        # Strip a leading ```json / ``` fence and the trailing fence.
-        text = text.split("```", 2)[1] if text.count("```") >= 2 else text
-        if text.lstrip().startswith("json"):
-            text = text.lstrip()[4:]
+    # Strip code fences (```json ... ``` or ``` ... ```)
+    if "```" in text:
+        parts = text.split("```")
+        # Take the content between the first pair of fences
+        if len(parts) >= 3:
+            inner = parts[1]
+            if inner.lstrip().startswith("json"):
+                inner = inner.lstrip()[4:]
+            text = inner.strip()
+        else:
+            # Incomplete fence — strip the opening fence and marker
+            text = text.replace("```json", "").replace("```", "").strip()
 
     # Pass 1: direct parse
     try:
@@ -173,15 +182,12 @@ def _extract_json(raw: str) -> Any:
     if start == -1:
         raise LLMInvocationError(f"Could not parse JSON from model reply: {raw!r}")
 
-    # Pass 2: fast recovery for truncated arrays
-    # Find the rightmost complete object boundary ("}" possibly followed by
-    # "," and/or whitespace) and close the array at that point.
+    # Pass 2: fast recovery for truncated top-level arrays
     if text[start] == "[":
-        for pattern in ("}\n]", "}\r\n]", "},", "}", ):
+        for pattern in ("}\n]", "}\r\n]", "},", "}"):
             idx = text.rfind(pattern, start)
             if idx == -1:
                 continue
-            # Keep up through and including "}"
             obj_end = idx + 1
             candidate = text[start:obj_end] + "]"
             try:
@@ -189,7 +195,28 @@ def _extract_json(raw: str) -> Any:
             except json.JSONDecodeError:
                 continue
 
-    # Pass 3: exhaustive reverse scan (O(n²) but reliable)
+    # Pass 3: fast recovery for truncated top-level objects that contain arrays.
+    # Strategy: find the last "}" that ends a complete nested object, then
+    # try to close any open arrays and the outer object.
+    if text[start] == "{":
+        # Walk backwards from the end looking for the last "}" that closes a
+        # complete inner object (a step/record inside a "steps" or similar array).
+        # Try progressively shorter suffixes: close inner array + outer object.
+        for closing in ("}\n    ]\n}", "}\n  ]\n}", "},\n    ]\n}", "}]}",
+                        "}\n]\n}", "}]}", "}\n  ]\n}", "} ]}"):
+            idx = text.rfind("}", start)
+            while idx > start:
+                candidate = text[start:idx + 1]
+                # Attempt to close open array + object at this boundary
+                for suffix in ("]}", "\n]}", "\n  ]}", "\n    ]}", "]}\n", "]}"):
+                    try:
+                        return json.loads(candidate + suffix)
+                    except json.JSONDecodeError:
+                        pass
+                idx = text.rfind("}", start, idx)
+            break  # only one pass through the while loop needed
+
+    # Pass 4: exhaustive reverse scan (O(n²), catches any remaining cases)
     for end in range(len(text), start, -1):
         candidate = text[start:end]
         try:

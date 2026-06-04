@@ -112,7 +112,7 @@ class Planner:
             raw = self._llm(
                 self._build_prompt(question, registry, context),
                 system=_SYSTEM,
-                max_tokens=2048,
+                max_tokens=8000,
             )
             plan = self._parse(raw)
             self.validate(plan, registry)

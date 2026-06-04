@@ -5,7 +5,13 @@
       "Bash(Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\.api.err.log\")",
       "Bash(Select-Object -Last 80)",
       "Bash(Get-ChildItem \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\\" | Sort-Object LastWriteTime -Descending | Select-Object -First 3 | Format-Table Name, LastWriteTime)",
-      "Bash(pdftotext \"e:\\\\REPOS\\\\sf-agents\\\\Sample Data\\\\green-lion-2026-1-prospectus.pdf\" -)"
+      "Bash(pdftotext \"e:\\\\REPOS\\\\sf-agents\\\\Sample Data\\\\green-lion-2026-1-prospectus.pdf\" -)",
+      "Bash(awk '/^5\\\\.2 PRIORITIES OF PAYMENTS/,/^5\\\\.3 LOSS ALLOCATION/')",
+      "PowerShell($r = Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\3f757a35-6086-44b6-86fc-c75eedb16284.result.json\" | ConvertFrom-Json; Write-Host \"STATUS:\" $r.status; Write-Host \"ERROR:\" $r.error; Write-Host \"ANSWER LENGTH:\" $r.result.answer.Length; Write-Host \"ANSWER PREVIEW:\" $r.result.answer.Substring\\(0, [Math]::Min\\(300, $r.result.answer.Length\\)\\); Write-Host \"CONFIDENCE:\" $r.result.confidence; Write-Host \"CLARIFICATIONS:\" $r.result.clarifications.Count)",
+      "PowerShell($r = Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\3f757a35-6086-44b6-86fc-c75eedb16284.trace.json\" | ConvertFrom-Json; $r.steps | ForEach-Object { Write-Host \"STEP:\" $_.step_id \"| conf:\" $_.output.confidence \"| issues:\" \\($_.output.issues -join \"; \"\\) \"| candidate_pages:\" \\($_.input_args.pages.Count\\) })",
+      "PowerShell($r = Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\3f757a35-6086-44b6-86fc-c75eedb16284.trace.json\" | ConvertFrom-Json; $step = $r.steps | Where-Object { $_.step_id -eq \"extract_definitions_prospectus\" }; Write-Host \"=== CANDIDATE PAGES ===\"; $step.output.metadata | ConvertTo-Json; Write-Host \"=== DEFINITIONS FOUND ===\"; $step.output.payload | ConvertTo-Json -Depth 4)",
+      "PowerShell(New-Item -ItemType Directory -Force \"e:\\\\REPOS\\\\sf-agents\\\\ui\\\\e2e\")",
+      "Bash(python -c ' *)"
     ]
   }
 }

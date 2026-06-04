@@ -3,7 +3,14 @@ import { Subscription } from 'rxjs';
 import { ApiService, RecipeInfo, UseCaseInfo, DealResponse, HealthResponse } from './api.service';
 import { SseService, RunEventData } from './sse.service';
 
-export type RunPhase = 'idle' | 'planning' | 'executing' | 'verifying' | 'waiting_for_input' | 'done' | 'error';
+export type RunPhase =
+  | 'idle'
+  | 'planning'
+  | 'executing'
+  | 'verifying'
+  | 'waiting_for_input'
+  | 'done'
+  | 'error';
 
 export interface DagStep {
   step_id: string;
@@ -55,7 +62,12 @@ export class RunStateService {
   readonly strategyDraft = signal<string>('thorough');
 
   // Human-in-the-loop clarification state
-  readonly pendingClarification = signal<{ step_id: string; question: string; issues: string[]; confidence: number } | null>(null);
+  readonly pendingClarification = signal<{
+    step_id: string;
+    question: string;
+    issues: string[];
+    confidence: number;
+  } | null>(null);
 
   // ── Derived ─────────────────────────────────────────────────────────────
   readonly progress = computed(() => {
@@ -228,7 +240,9 @@ export class RunStateService {
               next: (status) => {
                 if (status.result) this.result.set(status.result as Record<string, unknown>);
               },
-              error: () => { /* keep thin payload already set */ },
+              error: () => {
+                /* keep thin payload already set */
+              },
             });
           }
         }

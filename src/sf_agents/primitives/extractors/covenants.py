@@ -21,6 +21,8 @@ _SYSTEM = (
 _KEYWORDS = {"pdl", "overcollateralisation", "oc test", "oc ratio", "reserve fund",
              "interest coverage", "trigger", "covenant", "performance test"}
 
+_MAX_CANDIDATE_PAGES = 15
+
 
 class CovenantExtractor(BasePrimitive):
     """Extract covenant triggers and thresholds from prospectus pages.
@@ -66,6 +68,7 @@ class CovenantExtractor(BasePrimitive):
         pages: list[dict[str, Any]] = inp.get("pages", []) or []
         document: str = inp.get("document", "document")
         covenant_types: list[str] = inp.get("covenant_types", []) or []
+        context_hint: str = str(inp.get("context_hint", "") or "").strip()
 
         candidate_pages = _candidate_pages(pages, _KEYWORDS)
         if not candidate_pages:
@@ -77,8 +80,15 @@ class CovenantExtractor(BasePrimitive):
                 metadata={"candidate_pages": []},
             )
 
-        prompt = _build_prompt(document, candidate_pages, covenant_types)
-        raw = self._llm(prompt, system=_SYSTEM, max_tokens=4096)
+        prompt = _build_prompt(document, candidate_pages, covenant_types, context_hint=context_hint)
+        try:
+            raw = self._llm(prompt, system=_SYSTEM, max_tokens=4096)
+        except Exception as exc:
+            return PrimitiveOutput(
+                payload={"document": document, "covenants": []},
+                confidence=0.0,
+                issues=[f"LLM extraction failed: {exc}"],
+            )
         records = _coerce_records(raw)
 
         valid_pages = {p["page"]: p["text"] for p in pages}
@@ -134,14 +144,19 @@ class CovenantExtractor(BasePrimitive):
 
 
 def _candidate_pages(pages: list[dict], keywords: set[str]) -> list[dict]:
-    hits = [
-        p for p in pages
-        if any(kw in (p.get("text", "") or "").lower() for kw in keywords)
-    ]
-    return hits if hits else pages[:3]
+    def _score(p: dict) -> int:
+        text = (p.get("text", "") or "").lower()
+        return sum(1 for kw in keywords if kw in text)
+
+    scored = sorted(
+        ((p, _score(p)) for p in pages),
+        key=lambda x: (-x[1], x[0].get("page", 0)),
+    )
+    top = [p for p, score in scored if score > 0][:_MAX_CANDIDATE_PAGES]
+    return top if top else pages[:3]
 
 
-def _build_prompt(document: str, pages: list[dict], covenant_types: list[str]) -> str:
+def _build_prompt(document: str, pages: list[dict], covenant_types: list[str], context_hint: str = "") -> str:
     blocks = []
     for p in pages:
         text = (p.get("text", "") or "").strip()
@@ -152,8 +167,10 @@ def _build_prompt(document: str, pages: list[dict], covenant_types: list[str]) -
         f"Focus only on these covenant types: {', '.join(covenant_types)}.\n"
         if covenant_types else ""
     )
+    hint_section = f"ANALYST HINT: {context_hint}\n" if context_hint else ""
     return (
         f"Document: {document}\n\n"
+        f"{hint_section}"
         f"{type_filter}"
         "Extract all covenant triggers and performance tests from the pages below. "
         "Return a JSON array where each object has keys:\n"

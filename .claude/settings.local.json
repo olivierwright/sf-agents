@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(.\\\\.venv\\\\Scripts\\\\python.exe -m pytest tests/ -q)"
+      "Bash(.\\\\.venv\\\\Scripts\\\\python.exe -m pytest tests/ -q)",
+      "Bash(Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\.api.err.log\")",
+      "Bash(Select-Object -Last 80)",
+      "Bash(Get-ChildItem \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\\" | Sort-Object LastWriteTime -Descending | Select-Object -First 3 | Format-Table Name, LastWriteTime)",
+      "Bash(pdftotext \"e:\\\\REPOS\\\\sf-agents\\\\Sample Data\\\\green-lion-2026-1-prospectus.pdf\" -)"
     ]
   }
 }

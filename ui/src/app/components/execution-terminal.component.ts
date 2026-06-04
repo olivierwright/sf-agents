@@ -339,14 +339,17 @@ function fmtTs(iso: string): string {
         gap: var(--sp-2);
         margin-bottom: var(--sp-2);
       }
-      .clar-icon { font-size: 1rem; }
+      .clar-icon {
+        font-size: 1rem;
+      }
       .clar-label {
         font-size: 0.8125rem;
         font-weight: 600;
         color: var(--text-primary);
         flex: 1;
       }
-      .clar-step, .clar-conf {
+      .clar-step,
+      .clar-conf {
         font-size: 0.625rem;
         color: var(--text-muted);
         background: var(--bg-canvas);
@@ -401,8 +404,13 @@ function fmtTs(iso: string): string {
         white-space: nowrap;
         transition: opacity var(--duration-fast);
       }
-      .clar-submit-btn:hover:not([disabled]) { opacity: 0.85; }
-      .clar-submit-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+      .clar-submit-btn:hover:not([disabled]) {
+        opacity: 0.85;
+      }
+      .clar-submit-btn[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
 
       /* Log stream */
       .log-stream {

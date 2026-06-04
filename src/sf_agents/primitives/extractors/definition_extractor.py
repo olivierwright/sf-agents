@@ -24,6 +24,8 @@ _SYSTEM = (
     "every excerpt must be copied verbatim from the page you cite."
 )
 
+_MAX_CANDIDATE_PAGES = 15
+
 
 class DefinitionExtractor(BasePrimitive):
     """Extract per-term definitions (definition + page + verbatim excerpt).
@@ -64,6 +66,7 @@ class DefinitionExtractor(BasePrimitive):
         pages: list[dict[str, Any]] = inp.get("pages", []) or []
         terms: list[str] = [t for t in (inp.get("terms", []) or []) if str(t).strip()]
         document: str = inp.get("document", "document")
+        context_hint: str = str(inp.get("context_hint", "") or "").strip()
         if not terms:
             return PrimitiveOutput(
                 payload={"document": document, "definitions": []},
@@ -72,8 +75,15 @@ class DefinitionExtractor(BasePrimitive):
             )
 
         candidate_pages = self._candidate_pages(pages, terms)
-        prompt = self._build_prompt(document, terms, candidate_pages)
-        raw = self._llm(prompt, system=_SYSTEM, max_tokens=4096)
+        prompt = self._build_prompt(document, terms, candidate_pages, context_hint=context_hint)
+        try:
+            raw = self._llm(prompt, system=_SYSTEM, max_tokens=4096)
+        except Exception as exc:
+            return PrimitiveOutput(
+                payload={"document": document, "definitions": []},
+                confidence=0.0,
+                issues=[f"LLM extraction failed: {exc}"],
+            )
         records = self._coerce_records(raw)
 
         valid_pages = {p["page"]: p["text"] for p in pages}
@@ -105,10 +115,17 @@ class DefinitionExtractor(BasePrimitive):
             else:
                 issues.append(f"No resolvable page cited for term '{term}'.")
 
-        found = len({d["term"].lower() for d in definitions})
+        found_verified = len(citations)
+        found_total = len({d["term"].lower() for d in definitions})
         requested = len({t.lower() for t in terms})
-        confidence = round(found / requested, 4) if requested else 1.0
-        missing = sorted({t for t in terms} - {d["term"] for d in definitions})
+        # Partial credit: verified definitions count fully, unverified count at 0.5
+        found_unverified = found_total - found_verified
+        confidence = round(
+            min(1.0, (found_verified + 0.5 * found_unverified) / requested), 4
+        ) if requested else 1.0
+        # Case-insensitive missing detection
+        found_lower = {d["term"].lower() for d in definitions}
+        missing = sorted(t for t in terms if t.lower() not in found_lower)
         if missing:
             issues.append(f"No definition extracted for: {', '.join(missing)}.")
 
@@ -119,7 +136,8 @@ class DefinitionExtractor(BasePrimitive):
             issues=issues,
             metadata={
                 "requested": requested,
-                "found": found,
+                "found": found_total,
+                "found_verified": found_verified,
                 "candidate_pages": [p["page"] for p in candidate_pages],
             },
         )
@@ -129,19 +147,35 @@ class DefinitionExtractor(BasePrimitive):
     def _candidate_pages(
         pages: list[dict[str, Any]], terms: list[str]
     ) -> list[dict[str, Any]]:
-        """Pages whose text mentions at least one term (case-insensitive)."""
+        """Return the top definition-relevant pages (capped at _MAX_CANDIDATE_PAGES).
+
+        Glossary / definitions sections score highest — they formally define terms.
+        Pages that mention many requested terms score higher than pages that
+        mention only one. Pages are ranked by relevance and capped so the LLM
+        prompt stays within token limits.
+        """
         lowered = [t.lower() for t in terms]
-        hits = [
-            p for p in pages
-            if any(term in (p.get("text", "") or "").lower() for term in lowered)
-        ]
-        # Fall back to the first few pages if nothing matched, so the model still
-        # has something to work with (e.g. a "Definitions" section with synonyms).
-        return hits if hits else pages[:5]
+        _GLOSSARY_MARKERS = ("glossary", "definitions", "interpretation", "9.1")
+
+        def _score(p: dict[str, Any]) -> int:
+            text = (p.get("text", "") or "").lower()
+            glossary_score = 5 if any(m in text for m in _GLOSSARY_MARKERS) else 0
+            term_hits = sum(1 for t in lowered if t in text)
+            return glossary_score + term_hits
+
+        scored = sorted(
+            ((p, _score(p)) for p in pages),
+            key=lambda x: (-x[1], x[0].get("page", 0)),
+        )
+        top = [p for p, score in scored if score > 0][:_MAX_CANDIDATE_PAGES]
+        return top if top else pages[:5]
 
     @staticmethod
     def _build_prompt(
-        document: str, terms: list[str], pages: list[dict[str, Any]]
+        document: str,
+        terms: list[str],
+        pages: list[dict[str, Any]],
+        context_hint: str = "",
     ) -> str:
         blocks = []
         for p in pages:
@@ -150,10 +184,16 @@ class DefinitionExtractor(BasePrimitive):
                 blocks.append(f"[PAGE {p['page']}]\n{text[:4000]}")
         corpus = "\n\n".join(blocks) if blocks else "(no text available)"
         term_list = ", ".join(terms)
+        hint_section = (
+            f"\nANALYST HINT: {context_hint}\n"
+            "Use this hint to guide your search — the analyst may have pointed to a specific "
+            "section or page where the missing terms appear.\n"
+        ) if context_hint else ""
         return (
             f"Document: {document}\n\n"
             f"From the pages below, extract the formal definition of each of these "
-            f"terms: {term_list}.\n\n"
+            f"terms: {term_list}.\n"
+            f"{hint_section}\n"
             "For each term you can find, return an object with keys: 'term', "
             "'definition' (a concise paraphrase), 'page' (the integer page number "
             "shown in the [PAGE n] marker where the definition appears), and "

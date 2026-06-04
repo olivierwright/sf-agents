@@ -164,13 +164,54 @@ class Executor:
                             },
                         )
                         answer = self._ask_human(step.step_id, step.primitive, output, question)
+                        helped = not _user_cant_help(answer)
+                        confidence_before = output.confidence
+                        retry_output: Optional[PrimitiveOutput] = None
+
+                        if helped:
+                            # Retry the step with the analyst's hint injected
+                            try:
+                                hint_args = dict(args)
+                                hint_args["context_hint"] = answer
+                                hint_inp = PrimitiveInput(args=hint_args)
+                                t_retry = _now_ms()
+                                retry_output = self._invoke(
+                                    primitive, hint_inp,
+                                    run_id=run_id, step_id=step.step_id,
+                                )
+                                if retry_output.confidence > output.confidence:
+                                    # Improved — adopt the retried output
+                                    if self._tracer:
+                                        self._tracer.log_step_done(
+                                            step_id=step.step_id,
+                                            output=retry_output,
+                                            duration_ms=_now_ms() - t_retry,
+                                        )
+                                    outputs[step.step_id] = retry_output
+                                    output = retry_output
+                                    logger.info(
+                                        "step %s: retry improved confidence %.2f → %.2f",
+                                        step.step_id,
+                                        clarifications[-1]["confidence"] if clarifications else 0,
+                                        retry_output.confidence,
+                                    )
+                                else:
+                                    retry_output = None  # no improvement, discard
+                            except Exception as retry_exc:  # noqa: BLE001
+                                logger.warning(
+                                    "step %s: retry with hint failed: %s", step.step_id, retry_exc
+                                )
+
                         clarifications.append({
                             "step_id": step.step_id,
                             "primitive": step.primitive,
-                            "confidence": output.confidence,
+                            "confidence_before": confidence_before,
+                            "confidence_after": retry_output.confidence if retry_output else confidence_before,
                             "issues": list(output.issues),
                             "question": question,
                             "answer": answer,
+                            "helped": helped,
+                            "retried": retry_output is not None,
                         })
                     else:
                         review_entry = _human_review(
@@ -299,31 +340,67 @@ def _human_review(
     }
 
 
+_CANT_HELP_PHRASES = (
+    "don't know", "dont know", "do not know", "figure it out", "not sure",
+    "no idea", "skip", "idk", "n/a", "na", "just continue", "keep going",
+    "doesn't matter", "doesn't matter", "dont care", "don't care",
+)
+
+
+def _user_cant_help(answer: str) -> bool:
+    """Return True when the analyst's answer signals they cannot provide useful guidance."""
+    lowered = answer.lower().strip()
+    return not lowered or any(p in lowered for p in _CANT_HELP_PHRASES)
+
+
 def _generate_clarification_question(
     step_id: str,
     primitive: str,
     output: PrimitiveOutput,
     plan_context: str,
 ) -> str:
-    """Use the LLM to produce a targeted clarifying question for the human analyst."""
-    issues_text = "\n".join(f"- {i}" for i in output.issues) if output.issues else "- Low confidence with no specific issues noted"
+    """Generate a short, plain-language clarifying question for the human analyst.
+
+    The question must be immediately actionable — no document jargon, no
+    multi-part structure. It tells the analyst exactly what was found, what is
+    missing, and offers a clear escape hatch ("or type 'skip' to continue").
+    """
+    # Build a plain-English summary of what was found vs missing
+    payload = output.payload or {}
+    found_items: list[str] = []
+    missing_items: list[str] = []
+    if isinstance(payload, dict):
+        for d in payload.get("definitions", []):
+            found_items.append(d.get("term", ""))
+        for s in payload.get("waterfall_steps", []):
+            found_items.append(f"waterfall step {s.get('rank','?')}")
+        for c in payload.get("covenants", []):
+            found_items.append(c.get("type", ""))
+    # Pull missing from issues text
+    for issue in output.issues:
+        if "No definition extracted for:" in issue:
+            raw = issue.replace("No definition extracted for:", "").strip().rstrip(".")
+            missing_items.extend(t.strip() for t in raw.split(","))
+
+    found_str = ", ".join(found_items[:4]) if found_items else "nothing"
+    missing_str = ", ".join(missing_items[:4]) if missing_items else "some items"
+
     prompt = (
-        f"You are a structured finance analyst assistant helping review an automated extraction.\n\n"
-        f"Step '{step_id}' (primitive: {primitive}) completed with confidence "
-        f"{output.confidence:.2f}, which is below the required threshold.\n\n"
-        f"Issues found:\n{issues_text}\n\n"
-        f"Analysis context: {plan_context[:300]}\n\n"
-        "Write ONE concise clarifying question (1–2 sentences) to ask the human analyst "
-        "that would resolve the uncertainty or help improve the extraction. "
-        "Be specific about what is uncertain. Do not ask yes/no questions — ask for guidance."
+        "You are helping an investor analyse a structured finance deal.\n\n"
+        f"An automated step ('{step_id}') searched the document and found: {found_str}.\n"
+        f"It could NOT find: {missing_str}.\n"
+        f"Confidence score: {output.confidence:.0%}.\n\n"
+        "Write ONE plain, short question (max 2 sentences) asking the analyst where to "
+        "look for the missing information. Do NOT use legal jargon or ask about document "
+        "structure the analyst may not know. End with: "
+        "\"(Or type 'skip' to continue without this information.)\""
     )
     try:
-        return complete(prompt, max_tokens=150, temperature=0.3).strip()
+        return complete(prompt, max_tokens=120, temperature=0.2).strip()
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to generate clarification question: %s", exc)
-        issues_summary = "; ".join(output.issues[:2]) if output.issues else "low confidence"
         return (
-            f"Step '{step_id}' has low confidence ({output.confidence:.2f}). "
-            f"Issues: {issues_summary}. "
-            "How should I handle the uncertain results — include them with caveats, skip them, or use a fallback value?"
+            f"I found {found_str} but couldn't locate {missing_str} in the document. "
+            "Do you know which section or page these appear on? "
+            "(Or type 'skip' to continue without this information.)"
         )

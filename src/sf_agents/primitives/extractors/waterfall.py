@@ -20,6 +20,16 @@ _SYSTEM = (
 
 _KEYWORDS = {"priority of payments", "waterfall", "available funds", "interest proceeds", "principal proceeds"}
 
+# Ordinal markers that appear in actual waterfall text ("first, any fees…")
+_ORDINALS = ("first,", "second,", "third,", "fourth,", "fifth,",
+             "sixth,", "seventh,", "eighth,", "ninth,", "tenth,")
+_PAYMENT_WORDS = ("payable", "due and payable", "fees", "expenses", "interest", "principal")
+
+# Maximum candidate pages sent to the LLM — keeps prompts focused and fast
+_MAX_CANDIDATE_PAGES = 15
+# Minimum steps expected in a real RMBS waterfall (used in completeness scoring)
+_MIN_EXPECTED_STEPS = 8
+
 
 class WaterfallExtractor(BasePrimitive):
     """Extract the priority-of-payments waterfall from prospectus pages.
@@ -62,6 +72,7 @@ class WaterfallExtractor(BasePrimitive):
     def run(self, inp: PrimitiveInput) -> PrimitiveOutput:
         pages: list[dict[str, Any]] = inp.get("pages", []) or []
         document: str = inp.get("document", "document")
+        context_hint: str = str(inp.get("context_hint", "") or "").strip()
 
         candidate_pages = _candidate_pages(pages, _KEYWORDS)
         if not candidate_pages:
@@ -73,8 +84,17 @@ class WaterfallExtractor(BasePrimitive):
                 metadata={"candidate_pages": []},
             )
 
-        prompt = _build_prompt(document, candidate_pages)
-        raw = self._llm(prompt, system=_SYSTEM, max_tokens=4096)
+        prompt = _build_prompt(document, candidate_pages, context_hint=context_hint)
+        try:
+            raw = self._llm(prompt, system=_SYSTEM, max_tokens=4096)
+        except Exception as exc:
+            return PrimitiveOutput(
+                payload={"document": document, "waterfall_steps": []},
+                citations=[],
+                confidence=0.0,
+                issues=[f"LLM extraction failed: {exc}"],
+                metadata={"candidate_pages": [p["page"] for p in candidate_pages]},
+            )
         records = _coerce_records(raw)
 
         valid_pages = {p["page"]: p["text"] for p in pages}
@@ -89,12 +109,14 @@ class WaterfallExtractor(BasePrimitive):
             conditions = str(rec.get("conditions", "")).strip()
             excerpt = str(rec.get("excerpt", "")).strip()
             page = rec.get("page")
+            waterfall_type = str(rec.get("waterfall_type", "revenue_interest")).strip()
 
             if not beneficiary:
                 continue
 
             step = {
                 "rank": rank,
+                "waterfall_type": waterfall_type,
                 "beneficiary": beneficiary,
                 "amount_basis": amount_basis,
                 "conditions": conditions,
@@ -110,8 +132,7 @@ class WaterfallExtractor(BasePrimitive):
             else:
                 issues.append(f"Step rank {rank} ({beneficiary!r}): no resolvable page cited.")
 
-        n_candidates = len(candidate_pages)
-        confidence = round(min(len(steps) / max(n_candidates, 1), 1.0), 4)
+        confidence = _compute_confidence(steps, citations, issues)
 
         return PrimitiveOutput(
             payload={"document": document, "waterfall_steps": steps},
@@ -122,33 +143,101 @@ class WaterfallExtractor(BasePrimitive):
         )
 
 
+def _score_page(page: dict) -> int:
+    """Score a page by waterfall relevance.
+
+    Highly relevant pages (actual waterfall sections) have BOTH ordinal markers
+    ('first,', 'second,', …) and payment keywords. Keyword-only pages (risk
+    factors, summaries) score lower and are deprioritised.
+    """
+    text = (page.get("text", "") or "").lower()
+    keyword_score = sum(1 for kw in _KEYWORDS if kw in text)
+    ordinal_score = sum(1 for o in _ORDINALS if o in text)
+    payment_score = sum(1 for pw in _PAYMENT_WORDS if pw in text)
+    # Ordinal + payment overlap is the strongest signal for an actual waterfall page
+    return keyword_score * 2 + min(ordinal_score, 5) * 3 + min(payment_score, 6) * 1
+
+
 def _candidate_pages(pages: list[dict], keywords: set[str]) -> list[dict]:
-    hits = [
-        p for p in pages
-        if any(kw in (p.get("text", "") or "").lower() for kw in keywords)
-    ]
-    return hits if hits else pages[:3]
+    """Return the top waterfall-relevant pages (capped at _MAX_CANDIDATE_PAGES).
+
+    Pages are scored by waterfall-language density. Only pages with a positive
+    score are included; if none score positively, we fall back to the first 3
+    pages so the LLM always has something to work with.
+    """
+    scored = sorted(
+        ((p, _score_page(p)) for p in pages),
+        key=lambda x: (-x[1], x[0].get("page", 0)),
+    )
+    top = [p for p, score in scored if score > 0][:_MAX_CANDIDATE_PAGES]
+    return top if top else pages[:3]
 
 
-def _build_prompt(document: str, pages: list[dict]) -> str:
+def _compute_confidence(
+    steps: list[dict], citations: list[Citation], issues: list[str]
+) -> float:
+    """Compute a quality-based confidence score for the waterfall extraction.
+
+    Components:
+    - Citation coverage  (50 %): fraction of steps whose page was verified
+    - Rank continuity    (25 %): no gaps in the sequential priority ranking
+    - Completeness       (25 %): found ≥ _MIN_EXPECTED_STEPS priority items
+    - Issue penalty      (up to -30 %): unresolvable page citations
+
+    Capped at 0.95 to reflect residual LLM uncertainty.
+    """
+    n_steps = len(steps)
+    if n_steps == 0:
+        return 0.0
+
+    citation_coverage = len(citations) / n_steps
+
+    ranks = sorted(s["rank"] for s in steps)
+    if len(ranks) > 1:
+        gaps = sum(1 for a, b in zip(ranks, ranks[1:]) if b - a > 1)
+        rank_continuity = 1.0 - (gaps / (len(ranks) - 1))
+    else:
+        rank_continuity = 1.0
+
+    completeness = min(n_steps / _MIN_EXPECTED_STEPS, 1.0)
+    issue_penalty = min(len(issues) * 0.05, 0.30)
+
+    raw = (
+        0.50 * citation_coverage
+        + 0.25 * rank_continuity
+        + 0.25 * completeness
+        - issue_penalty
+    )
+    return round(max(0.0, min(0.95, raw)), 4)
+
+
+def _build_prompt(document: str, pages: list[dict], context_hint: str = "") -> str:
     blocks = []
     for p in pages:
         text = (p.get("text", "") or "").strip()
         if text:
-            blocks.append(f"[PAGE {p['page']}]\n{text[:3000]}")
+            blocks.append(f"[PAGE {p['page']}]\n{text[:2500]}")
     corpus = "\n\n".join(blocks) if blocks else "(no text available)"
+    hint_section = f"\nANALYST HINT: {context_hint}\n" if context_hint else ""
     return (
-        f"Document: {document}\n\n"
-        "Extract the complete priority-of-payments waterfall from the pages below. "
+        f"Document: {document}\n"
+        f"{hint_section}\n"
+        "Extract the COMPLETE priority-of-payments waterfall from the pages below. "
+        "RMBS prospectuses typically contain multiple priority cascades — extract ALL of them:\n"
+        "  (1) Revenue / Interest Priority of Payments (pre-enforcement)\n"
+        "  (2) Principal / Redemption Priority of Payments\n"
+        "  (3) Post-Enforcement Priority of Payments\n\n"
         "Return a JSON array where each object represents one waterfall step and has keys:\n"
-        "  'rank' (int, 1-based priority order),\n"
+        "  'rank' (int, global 1-based order across ALL cascades),\n"
+        "  'waterfall_type' (str: 'revenue_interest', 'principal_redemption', or 'post_enforcement'),\n"
         "  'beneficiary' (str, who receives the payment),\n"
         "  'amount_basis' (str, how the amount is determined),\n"
         "  'conditions' (str, any conditions or triggers, or 'none'),\n"
         "  'page' (int, the [PAGE n] marker where this step appears),\n"
-        "  'excerpt' (str, text copied VERBATIM from that page).\n\n"
-        "Return ONLY the JSON array. Order steps by priority rank ascending. "
-        "Limit each 'excerpt' field to 150 characters maximum.\n\n"
+        "  'excerpt' (str, text copied VERBATIM from that page, max 150 chars).\n\n"
+        "Return ONLY the JSON array. Order by cascade (revenue_interest first, then "
+        "principal_redemption, then post_enforcement), then by rank within each cascade. "
+        "Number ranks continuously from 1 across all cascades.\n\n"
         f"PAGES:\n{corpus}"
     )
 

@@ -25,41 +25,45 @@ import { ResultsPanelComponent } from './components/results-panel.component';
       </div>
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .terminal-shell {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .terminal-body {
-      display: flex;
-      flex: 1;
-      min-height: 0;   /* lets flex children shrink below content size */
-      overflow: hidden;
-    }
-    /* Custom elements are inline by default — make them block + fill height */
-    app-deal-sidebar {
-      display: block;
-      flex-shrink: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-    app-execution-terminal {
-      display: flex;
-      flex: 1;
-      min-width: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-    app-results-panel {
-      display: block;
-      flex-shrink: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .terminal-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .terminal-body {
+        display: flex;
+        flex: 1;
+        min-height: 0; /* lets flex children shrink below content size */
+        overflow: hidden;
+      }
+      /* Custom elements are inline by default — make them block + fill height */
+      app-deal-sidebar {
+        display: block;
+        flex-shrink: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+      app-execution-terminal {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+      app-results-panel {
+        display: block;
+        flex-shrink: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    `,
+  ],
 })
 export class App implements OnInit {
   private state = inject(RunStateService);

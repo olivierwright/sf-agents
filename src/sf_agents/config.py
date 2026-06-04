@@ -33,7 +33,7 @@ class Config:
     data_dir: Path
     audit_dir: Path
     trace_dir: Path = None  # type: ignore[assignment]  # see __post_init__
-    confidence_floor: float = 0.70
+    confidence_floor: float = 0.35
 
     def __post_init__(self) -> None:
         # Provide a sensible default for trace_dir if not supplied.
@@ -58,5 +58,5 @@ def get_config() -> Config:
     data_dir = Path(os.environ.get("SF_AGENTS_DATA_DIR", str(root / "Sample Data")))
     audit_dir = Path(os.environ.get("SF_AGENTS_AUDIT_DIR", str(root / "audit_logs")))
     trace_dir = Path(os.environ.get("SF_AGENTS_TRACE_DIR", str(root / "trace_logs")))
-    floor = float(os.environ.get("SF_AGENTS_CONFIDENCE_FLOOR", "0.70"))
+    floor = float(os.environ.get("SF_AGENTS_CONFIDENCE_FLOOR", "0.35"))
     return Config(data_dir=data_dir, audit_dir=audit_dir, trace_dir=trace_dir, confidence_floor=floor)

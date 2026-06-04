@@ -30,4 +30,6 @@ audit_logs/
 .api.err.log
 .api.log
 
+trace_logs/
+
 .pytest_cache/

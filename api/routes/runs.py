@@ -224,11 +224,44 @@ def _make_ask_human(record, on_event) -> Any:
     return _ask
 
 
+def _build_fallback_answer(question: str, outputs: dict) -> str:
+    """Build a structured bullet summary from step payloads when LLM synthesis fails."""
+    lines = [f"Summary for: {question}\n"]
+    for step_id, out in outputs.items():
+        payload = out.payload
+        if not isinstance(payload, dict):
+            continue
+        doc = payload.get("document", step_id)
+        # Definitions
+        defs = payload.get("definitions", [])
+        if defs:
+            lines.append(f"\n**Definitions from {doc}:**")
+            for d in defs[:8]:
+                lines.append(f"  - {d.get('term','')}: {d.get('definition','')[:120]}")
+        # Waterfall steps
+        steps = payload.get("waterfall_steps", [])
+        if steps:
+            lines.append(f"\n**Waterfall ({len(steps)} steps) from {doc}:**")
+            for s in steps[:6]:
+                lines.append(f"  {s.get('rank','?')}. {s.get('beneficiary','')}: {s.get('amount_basis','')[:80]}")
+        # Covenants
+        covs = payload.get("covenants", [])
+        if covs:
+            lines.append(f"\n**Covenants from {doc}:**")
+            for c in covs[:6]:
+                lines.append(f"  - {c.get('type','')}: {c.get('threshold','')}")
+        # Loan tape summary
+        if "row_count" in payload:
+            lines.append(f"\n**Loan tape ({doc}):** {payload['row_count']} loans loaded.")
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
 def _synthesize_answer(
     question: str,
     outputs: dict,
     clarifications: list,
     citations: list,
+    tracer=None,
 ) -> str:
     """Use the LLM to produce a proper narrative answer from extracted data."""
     # Build a concise summary of extracted outputs (skip huge payloads)
@@ -244,9 +277,26 @@ def _synthesize_answer(
 
     clar_text = ""
     if clarifications:
-        clar_text = "\n\nHUMAN CLARIFICATIONS PROVIDED DURING ANALYSIS:\n" + "\n".join(
-            f"Q: {c['question']}\nA: {c['answer']}" for c in clarifications
-        )
+        helpful = [c for c in clarifications if c.get("helped", True)]
+        unhelpful = [c for c in clarifications if not c.get("helped", True)]
+        lines = ["\n\nANALYST CLARIFICATIONS DURING ANALYSIS:"]
+        for c in helpful:
+            retry_note = ""
+            if c.get("retried"):
+                retry_note = f" [Re-extraction with this hint improved confidence from {c.get('confidence_before', 0):.0%} to {c.get('confidence_after', 0):.0%}]"
+            lines.append(
+                f"• Step '{c['step_id']}': analyst provided guidance.{retry_note}\n"
+                f"  Q: {c['question']}\n"
+                f"  A: {c['answer']}"
+            )
+        if unhelpful:
+            missing_steps = ", ".join(c["step_id"] for c in unhelpful)
+            lines.append(
+                f"• Steps [{missing_steps}]: analyst could not provide guidance. "
+                "State clearly in your answer that these items could not be confirmed "
+                "from the available document pages, and do NOT speculate about their content."
+            )
+        clar_text = "\n".join(lines)
 
     cite_text = ""
     if citations:
@@ -265,12 +315,78 @@ def _synthesize_answer(
         f"EXTRACTED DATA:\n" + "\n".join(output_summary) +
         clar_text + cite_text
     )
+    if tracer:
+        tracer.log_step_start(
+            step_id="synthesize_answer",
+            primitive="synthesizer.narrative",
+            version="0.1.0",
+            input_args={"question": question, "step_count": len(outputs)},
+        )
     try:
-        return complete(prompt, max_tokens=1200, temperature=0.3).strip()
+        result = complete(prompt, max_tokens=1200, temperature=0.3).strip()
+        if tracer:
+            tracer.log_llm(
+                step_id="synthesize_answer",
+                primitive="synthesizer.narrative",
+                prompt=prompt,
+                system=None,
+                response=result,
+                parsed_ok=True,
+            )
+            from sf_agents.primitives.base import PrimitiveOutput
+            tracer.log_step_done(
+                step_id="synthesize_answer",
+                output=PrimitiveOutput(payload={"answer": result[:500]}, confidence=1.0),
+                duration_ms=0.0,
+            )
+        return result
     except Exception as exc:  # noqa: BLE001
         import logging
         logging.getLogger("sf_agents.api.runs").warning("Answer synthesis failed: %s", exc)
+        if tracer:
+            from sf_agents.primitives.base import PrimitiveOutput
+            tracer.log_step_done(
+                step_id="synthesize_answer",
+                output=PrimitiveOutput(
+                    payload=None,
+                    confidence=0.0,
+                    issues=[f"LLM synthesis failed: {exc}"],
+                ),
+                duration_ms=0.0,
+            )
         return ""
+
+
+def _persist_result(cfg, run_id: str, record) -> None:
+    """Write run result/status to disk so it survives server reloads."""
+    try:
+        data = {
+            "run_id": run_id,
+            "recipe": record.recipe,
+            "question": record.question,
+            "strategy": record.strategy,
+            "status": record.status,
+            "result": record.result,
+            "error": record.error,
+        }
+        path = cfg.trace_dir / f"{run_id}.result.json"
+        cfg.trace_dir.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, default=str)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _load_result_from_disk(cfg, run_id: str) -> Optional[dict]:
+    """Return persisted run data from disk, or None if not found."""
+    try:
+        path = cfg.trace_dir / f"{run_id}.result.json"
+        if path.exists():
+            with open(path, encoding="utf-8") as fh:
+                return json.load(fh)
+    except Exception:  # noqa: BLE001
+        pass
+    return None
 
 
 def _run_question_worker(
@@ -375,15 +491,20 @@ def _run_question_worker(
                 outputs=result.outputs,
                 clarifications=result.clarifications,
                 citations=all_citations,
+                tracer=tracer,
             )
+            # Aggregate confidence across all steps (exclude zero-confidence failures)
+            step_confs = [o.confidence for o in result.outputs.values() if o.confidence > 0]
+            run_confidence = round(sum(step_confs) / len(step_confs), 4) if step_confs else 0.0
+            answer = narrative or _build_fallback_answer(question, result.outputs) or (final.payload if final else None)
             record.result = {
                 "run_id": run_id,
                 "plan": plan.as_dict(),
                 "question": question,
                 "strategy": strategy,
-                "answer": narrative or (final.payload if final else None),
+                "answer": answer,
                 "citations": citations,
-                "confidence": final.confidence if final else None,
+                "confidence": run_confidence,
                 "verification": report.as_dict(),
                 "review_queue": result.review_queue,
                 "clarifications": result.clarifications,
@@ -394,6 +515,8 @@ def _run_question_worker(
         if trace_path and record.result:
             record.result["trace_path"] = trace_path
         record.status = "done"
+        # Persist result to disk so it survives server reloads
+        _persist_result(cfg, run_id, record)
 
     except Exception as exc:  # noqa: BLE001
         import logging
@@ -404,6 +527,8 @@ def _run_question_worker(
             pass
         record.error = str(exc)
         record.status = "error"
+        # Persist error state to disk so it survives server reloads
+        _persist_result(cfg, run_id, record)
         # Emit run_error so the SSE client transitions to the error phase
         from sf_agents.orchestrator.events import EventType, RunEvent
         try:
@@ -521,11 +646,26 @@ async def clarify_run(run_id: str, body: ClarifyRequest) -> dict[str, str]:
 @router.get("/runs/{run_id}/result")
 async def get_result(run_id: str) -> RunStatus:
     record = run_store.get(run_id)
-    if record is None:
+    if record is not None:
+        if record.status in ("pending", "running", "waiting_for_input"):
+            raise HTTPException(status_code=425, detail="Run not yet complete")
+        return record.to_status()
+    # Not in memory (server may have reloaded) — try disk
+    cfg = get_config()
+    data = _load_result_from_disk(cfg, run_id)
+    if data is None:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
-    if record.status in ("pending", "running", "waiting_for_input"):
+    if data.get("status") in ("pending", "running", "waiting_for_input"):
         raise HTTPException(status_code=425, detail="Run not yet complete")
-    return record.to_status()
+    return RunStatus(
+        run_id=run_id,
+        recipe=data.get("recipe", ""),
+        question=data.get("question", ""),
+        strategy=data.get("strategy", "thorough"),
+        status=data.get("status", "done"),
+        result=data.get("result"),
+        error=data.get("error"),
+    )
 
 
 @router.get("/runs/{run_id}/audit")
@@ -555,15 +695,15 @@ async def get_audit(run_id: str) -> list[dict[str, Any]]:
 @router.get("/runs/{run_id}/trace")
 async def get_trace(run_id: str) -> dict[str, Any]:
     """Return the full run trace (step inputs, outputs, LLM calls)."""
-    record = run_store.get(run_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
-
     cfg = get_config()
     trace_path = cfg.trace_dir / f"{run_id}.trace.json"
     if not trace_path.exists():
+        # Check if the run is known at all (in memory or on disk)
+        record = run_store.get(run_id)
+        disk = _load_result_from_disk(cfg, run_id)
+        if record is None and disk is None:
+            raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
         raise HTTPException(status_code=404, detail="Trace not yet available (run may still be in progress)")
-
     import json as _json
     with open(trace_path, encoding="utf-8") as fh:
         return _json.load(fh)

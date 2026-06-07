@@ -14,18 +14,34 @@ EXPECTED = {
     "connector.pdf_document",
     "connector.loan_tape",
     "connector.remittance_file",
+    "connector.text",
+    "connector.auto",
     # Validators
     "validator.esma_schema",
     # Extractors
     "extractor.definitions",
     "extractor.waterfall",
     "extractor.covenants",
+    "extractor.locator",
+    "extractor.general",
+    "extractor.table",
+    "extractor.schema_inference",
     # Analyzers
     "analyzer.definition_comparator",
     "analyzer.claim_vs_collateral",
     "analyzer.cashflow_anomaly",
     "analyzer.covenant_compliance",
     "analyzer.rating_action",
+    "analyzer.general",
+    "analyzer.consistency",
+    "analyzer.tape_greencheck",
+    "analyzer.code_gen",
+    "analyzer.dynamic",
+    "analyzer.period_comparison",
+    # Formatters
+    "formatter.visualization",
+    # Executors
+    "executor.python",
 }
 
 

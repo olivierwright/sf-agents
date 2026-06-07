@@ -8,8 +8,9 @@ import {
 } from '@angular/core';
 import { RunStateService } from '../services/run-state.service';
 import { ApiService } from '../services/api.service';
+import { DashboardPanelComponent } from './dashboard-panel.component';
 
-type Tab = 'answer' | 'citations' | 'audit' | 'trace';
+type Tab = 'answer' | 'citations' | 'audit' | 'trace' | 'dashboard';
 
 interface CitationGroup {
   source: string;
@@ -19,6 +20,7 @@ interface CitationGroup {
 @Component({
   selector: 'app-results-panel',
   standalone: true,
+  imports: [DashboardPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="results-panel">
@@ -232,6 +234,51 @@ interface CitationGroup {
                   }
                 </div>
               }
+
+              <!-- Inline visualization data from run results -->
+              @if (resultVisualizations(result).length > 0) {
+                <div class="viz-section">
+                  <div class="sec-label">VISUALIZATIONS</div>
+                  @for (viz of resultVisualizations(result); track $index) {
+                    @if (viz['type'] === 'table') {
+                      <div class="viz-table-card">
+                        <div class="viz-table-title">{{ viz['title'] }}</div>
+                        <div class="viz-table-wrap">
+                          <table class="viz-table">
+                            <thead>
+                              <tr>
+                                @for (col of asArr(viz['columns']); track col) {
+                                  <th>{{ col }}</th>
+                                }
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of asArr(viz['rows']); track $index) {
+                                <tr>
+                                  @for (cell of asArr(row); track $index) {
+                                    <td>{{ cell }}</td>
+                                  }
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    }
+                    @if (viz['type'] === 'kpi_card') {
+                      <div class="viz-kpi-inline">
+                        <span class="viz-kpi-label">{{ viz['metric'] }}</span>
+                        <span class="viz-kpi-val">{{ viz['value'] }}</span>
+                        @if (viz['change_pct'] !== null && viz['change_pct'] !== undefined) {
+                          <span class="viz-kpi-change" [class.up]="viz['change_pct'] > 0" [class.down]="viz['change_pct'] < 0">
+                            {{ viz['change_pct'] > 0 ? '+' : '' }}{{ viz['change_pct'] }}%
+                          </span>
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+              }
             }
           </div>
         }
@@ -305,6 +352,11 @@ interface CitationGroup {
               }
             }
           </div>
+        }
+
+        <!-- ── DASHBOARD TAB ─────────────────── -->
+        @if (activeTab() === 'dashboard') {
+          <app-dashboard-panel />
         }
 
         <!-- ── TRACE TAB ─────────────────────── -->
@@ -1148,6 +1200,47 @@ interface CitationGroup {
       .err-text {
         color: var(--color-danger);
       }
+
+      /* Inline visualization styles */
+      .viz-section { margin-top: var(--sp-4); }
+      .viz-table-card {
+        border: 1px solid var(--border); border-radius: var(--radius-md);
+        margin-bottom: var(--sp-3); overflow: hidden;
+      }
+      .viz-table-title {
+        font-size: 0.6875rem; font-weight: 600; color: var(--text-secondary);
+        padding: var(--sp-2) var(--sp-3); background: var(--bg-canvas);
+        border-bottom: 1px solid var(--border);
+      }
+      .viz-table-wrap { overflow-x: auto; }
+      .viz-table {
+        width: 100%; border-collapse: collapse; font-size: 0.6875rem;
+      }
+      .viz-table th {
+        text-align: left; padding: var(--sp-1) var(--sp-2);
+        border-bottom: 1px solid var(--border); font-weight: 600;
+        color: var(--text-muted); font-family: var(--font-mono);
+        font-size: 0.5625rem; white-space: nowrap;
+      }
+      .viz-table td {
+        padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid rgba(0,0,0,0.04);
+        font-family: var(--font-mono); color: var(--text-secondary);
+      }
+      .viz-kpi-inline {
+        display: inline-flex; align-items: center; gap: var(--sp-2);
+        padding: var(--sp-1) var(--sp-3); border: 1px solid var(--border);
+        border-radius: var(--radius-sm); margin: 2px var(--sp-1) 2px 0;
+        font-size: 0.75rem;
+      }
+      .viz-kpi-label {
+        font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase;
+      }
+      .viz-kpi-val {
+        font-family: var(--font-mono); font-weight: 600; color: var(--text-primary);
+      }
+      .viz-kpi-change { font-family: var(--font-mono); font-size: 0.625rem; }
+      .viz-kpi-change.up { color: var(--color-success); }
+      .viz-kpi-change.down { color: var(--color-danger); }
     `,
   ],
 })
@@ -1178,6 +1271,7 @@ export class ResultsPanelComponent {
     { id: 'citations', label: 'Citations' },
     { id: 'audit', label: 'Audit' },
     { id: 'trace', label: 'Trace' },
+    { id: 'dashboard', label: 'Dashboard' },
   ];
 
   readonly allCitations = computed(() => {
@@ -1355,6 +1449,28 @@ export class ResultsPanelComponent {
     if (n >= 0.5) return 'conf-val conf-mid';
     return 'conf-val conf-low';
   }
+
+  /** Extract visualization descriptors from run results. */
+  resultVisualizations(result: Record<string, unknown>): any[] {
+    // Check for direct visualizations field
+    if (Array.isArray(result['visualizations'])) return result['visualizations'];
+    // Check inside answer
+    const answer = result['answer'];
+    if (typeof answer === 'object' && answer !== null) {
+      const a = answer as Record<string, unknown>;
+      if (Array.isArray(a['visualizations'])) return a['visualizations'];
+      // Check for dashboard.visualizations
+      const dash = a['dashboard'] as Record<string, unknown> | undefined;
+      if (dash) {
+        const vizs: any[] = [];
+        if (Array.isArray(dash['cards'])) vizs.push(...dash['cards']);
+        if (Array.isArray(dash['tables'])) vizs.push(...dash['tables']);
+        return vizs;
+      }
+    }
+    return [];
+  }
+
   fmtMs(ms: unknown): string {
     const n = typeof ms === 'number' ? ms : 0;
     return n < 1000 ? `${n.toFixed(0)}ms` : `${(n / 1000).toFixed(1)}s`;

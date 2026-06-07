@@ -105,6 +105,33 @@ export interface BenchmarkResponse {
   runs: BenchmarkRun[];
 }
 
+export interface PeriodMetric {
+  values: number[];
+  changes_pct: (number | null)[];
+}
+
+export interface PeriodHighlight {
+  metric: string;
+  period: string;
+  direction: 'increase' | 'decrease';
+  magnitude_pct: number;
+  from_value: number;
+  to_value: number;
+}
+
+export interface PeriodComparisonResponse {
+  periods: string[];
+  files: string[];
+  metrics: Record<string, PeriodMetric>;
+  highlights: PeriodHighlight[];
+  chart_data: {
+    bar: { labels: string[]; datasets: { label: string; data: number[] }[] };
+    line: { labels: string[]; datasets: { label: string; data: number[] }[] };
+    distributions: Record<string, Record<string, Record<string, number>>>;
+  };
+  distributions: Record<string, Record<string, Record<string, number>>>;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
@@ -183,5 +210,9 @@ export class ApiService {
 
   listRuns(): Observable<RunStatus[]> {
     return this.http.get<RunStatus[]>('/api/runs');
+  }
+
+  dealPeriods(): Observable<PeriodComparisonResponse> {
+    return this.http.get<PeriodComparisonResponse>('/api/deal/periods');
   }
 }

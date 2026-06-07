@@ -17,7 +17,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import benchmark, deal, health, primitives, recipes, runs, strategies, use_cases
+from .routes import benchmark, deal, health, periods, primitives, recipes, runs, strategies, use_cases
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,4 +46,5 @@ app.include_router(primitives.router, prefix="/api", tags=["primitives"])
 app.include_router(strategies.router, prefix="/api", tags=["strategies"])
 app.include_router(benchmark.router, prefix="/api", tags=["benchmark"])
 app.include_router(deal.router, prefix="/api", tags=["deal"])
+app.include_router(periods.router, prefix="/api", tags=["periods"])
 app.include_router(runs.router, prefix="/api", tags=["runs"])

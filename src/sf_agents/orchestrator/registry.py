@@ -79,7 +79,9 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     from ..primitives.analyzers.definition_comparator import DefinitionComparator
     from ..primitives.analyzers.dynamic_analyzer import DynamicAnalyzer
     from ..primitives.analyzers.general_analyzer import GeneralAnalyzer
+    from ..primitives.analyzers.period_comparison import PeriodComparisonAnalyzer
     from ..primitives.analyzers.rating_action import RatingActionAnalyzer
+    from ..primitives.analyzers.visualization import VisualizationFormatter
     from ..primitives.analyzers.tape_greencheck import TapeGreencheckAnalyzer
     from ..primitives.connectors.auto import AutoConnector
     from ..primitives.connectors.investor_report import InvestorReportConnector
@@ -130,6 +132,9 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     registry.register(lambda hook: TapeGreencheckAnalyzer(audit_hook=hook))
     registry.register(lambda hook: CodeGenAnalyzer(llm=llm, audit_hook=hook))
     registry.register(lambda hook: DynamicAnalyzer(llm=llm, audit_hook=hook))
+    # Analyzers (period comparison & visualization)
+    registry.register(lambda hook: PeriodComparisonAnalyzer(llm=llm, audit_hook=hook))
+    registry.register(lambda hook: VisualizationFormatter(audit_hook=hook))
     # Executors
     registry.register(lambda hook: PythonRunnerExecutor(audit_hook=hook))
     return registry

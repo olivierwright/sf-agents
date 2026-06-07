@@ -1,6 +1,21 @@
-INFO:     127.0.0.1:52753 - "GET /api/primitives HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52751 - "GET /api/use-cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52750 - "GET /api/recipes HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52752 - "GET /api/deal HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58164 - "POST /api/runs HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:58166 - "GET /api/runs/a837700f-74ef-43c8-9866-63d28af0626f/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56362 - "GET /api/recipes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56364 - "GET /api/deal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56363 - "GET /api/use-cases HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56365 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53012 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:59280 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57993 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:50086 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:64307 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:58940 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:63067 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:57922 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:64958 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:58374 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:60839 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:57362 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:59210 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:59054 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:63486 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52928 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63125 - "GET /api/runs/48656dc7-624f-413f-afcc-98e6704c5d92/result HTTP/1.1" 200 OK

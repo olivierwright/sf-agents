@@ -5,6 +5,7 @@ import {
   computed,
   ChangeDetectionStrategy,
   effect,
+  HostBinding,
 } from '@angular/core';
 import { RunStateService } from '../services/run-state.service';
 import { ApiService } from '../services/api.service';
@@ -23,7 +24,7 @@ interface CitationGroup {
   imports: [DashboardPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="results-panel">
+    <div class="results-panel" [class.expanded]="expanded()">
       <!-- Tab bar -->
       <div class="tab-bar">
         @for (tab of tabs; track tab.id) {
@@ -39,6 +40,11 @@ interface CitationGroup {
             @if (tab.id === 'audit' && state.events().length > 0) {
               <span class="tab-count">{{ state.events().length }}</span>
             }
+          </button>
+        }
+        @if (activeTab() === 'dashboard') {
+          <button class="expand-btn" (click)="toggleExpand()" [title]="expanded() ? 'Collapse' : 'Expand dashboard'">
+            {{ expanded() ? '⊟' : '⊞' }}
           </button>
         }
       </div>
@@ -485,6 +491,17 @@ interface CitationGroup {
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        transition: all 0.3s ease;
+      }
+      .results-panel.expanded {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        width: 100vw;
+        min-width: 100vw;
+        height: 100vh;
+        border-left: none;
+        border-radius: 0;
       }
 
       .tab-bar {
@@ -514,6 +531,25 @@ interface CitationGroup {
       }
       .tab-btn:hover:not(.active) {
         color: var(--text-secondary);
+      }
+      .expand-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        border-left: 1px solid var(--border);
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        font-size: 1rem;
+        color: var(--text-muted);
+        transition: all var(--duration-fast);
+      }
+      .expand-btn:hover {
+        color: var(--accent);
+        background: rgba(27, 111, 107, 0.04);
       }
       .tab-count {
         background: var(--bg-canvas);
@@ -1248,6 +1284,7 @@ export class ResultsPanelComponent {
   protected state = inject(RunStateService);
   private api = inject(ApiService);
   readonly activeTab = signal<Tab>('answer');
+  readonly expanded = signal(false);
   readonly traceData = signal<Record<string, unknown> | null>(null);
   readonly traceLoading = signal(false);
 
@@ -1430,6 +1467,10 @@ export class ResultsPanelComponent {
 
   selectTab(tab: Tab): void {
     this.activeTab.set(tab);
+    // Collapse when leaving dashboard tab
+    if (tab !== 'dashboard') {
+      this.expanded.set(false);
+    }
     // Load trace when tab is selected and run is done or finishing
     if (tab === 'trace') {
       const phase = this.state.phase();
@@ -1441,6 +1482,10 @@ export class ResultsPanelComponent {
         this.loadTrace();
       }
     }
+  }
+
+  toggleExpand(): void {
+    this.expanded.update((v) => !v);
   }
 
   confClass(c: unknown): string {

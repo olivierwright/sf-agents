@@ -173,6 +173,7 @@ type DashTab = 'overview' | 'charts' | 'table';
       padding: var(--sp-4);
       overflow-y: auto;
       height: 100%;
+      container-type: inline-size;
     }
     .dash-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -215,6 +216,9 @@ type DashTab = 'overview' | 'charts' | 'table';
     .kpi-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: var(--sp-3); margin-bottom: var(--sp-4);
+    }
+    @container (min-width: 700px) {
+      .kpi-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
     }
     .kpi-card {
       background: var(--bg-surface); border: 1px solid var(--border);
@@ -270,6 +274,14 @@ type DashTab = 'overview' | 'charts' | 'table';
       display: grid; grid-template-columns: 1fr 1fr;
       gap: var(--sp-3);
     }
+    @container (min-width: 900px) {
+      .charts-grid { grid-template-columns: repeat(2, 1fr); }
+      canvas { max-height: 320px; }
+    }
+    @container (min-width: 1200px) {
+      .charts-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+      canvas { max-height: 400px; }
+    }
     .chart-card {
       background: var(--bg-surface); border: 1px solid var(--border);
       border-radius: var(--radius-md); padding: var(--sp-3);
@@ -279,6 +291,13 @@ type DashTab = 'overview' | 'charts' | 'table';
       margin-bottom: var(--sp-2);
     }
     canvas { width: 100% !important; max-height: 200px; }
+
+    @container (min-width: 700px) {
+      .chart-card { padding: var(--sp-4); }
+      .chart-title { font-size: 0.875rem; }
+      .metrics-table { font-size: 0.8125rem; }
+      .kpi-value { font-size: 1.3rem; }
+    }
 
     /* Tables */
     .table-section { margin-bottom: var(--sp-4); }

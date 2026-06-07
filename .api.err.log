@@ -1,9 +1,6 @@
 INFO:     Will watch for changes in these directories: ['C:\\Users\\rik\\Python Scripts\\sf-agents']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [18004] using StatReload
-INFO:     Started server process [37364]
+INFO:     Started reloader process [36920] using StatReload
+INFO:     Started server process [55596]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:botocore.credentials:Found credentials in environment variables.
-INFO:sf_agents.planner:planner: using LLM-generated plan (3 steps)
-INFO:sf_agents.run_tracer:trace written: C:\Users\rik\Python Scripts\sf-agents\trace_logs\48656dc7-624f-413f-afcc-98e6704c5d92.trace.json

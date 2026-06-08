@@ -9,12 +9,12 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..routes.runs import _get_recipe_context, _run_question_worker
+from ..routes.runs import _run_question_worker
 from ..streaming import run_store
 
 router = APIRouter()
 
-_VALID_STRATEGIES = {"thorough", "minimal", "parallel_first"}
+_VALID_STRATEGIES = {"thorough", "minimal", "parallel_first", "3lod"}
 
 
 class BenchmarkRequest(BaseModel):
@@ -48,7 +48,7 @@ async def create_benchmark(body: BenchmarkRequest) -> dict:
         record = run_store.create(question=question, strategy=strategy)
         thread = threading.Thread(
             target=_run_question_worker,
-            args=(record.run_id, question, strategy, context, None, loop, ""),
+            args=(record.run_id, question, strategy, context, None, loop, "", ""),
             daemon=True,
             name=f"sf-bench-{strategy[:4]}-{record.run_id[:6]}",
         )

@@ -29,6 +29,7 @@ _SYSTEM = (
     "You compose registered primitives into a directed acyclic graph (DAG). "
     "You may ONLY use primitives from the provided catalogue. Never invent "
     "primitive names or arguments.\n\n"
+
     "CONNECTOR SELECTION RULES — follow strictly:\n"
     "- connector.prospectus: only for the 'prospectus' document (PDF).\n"
     "- connector.investor_report: only for 'investor_report' documents (PDF).\n"
@@ -39,40 +40,44 @@ _SYSTEM = (
     "connector.remittance_file in the plan.\n"
     "- validator.esma_schema: use AFTER connector.loan_tape, not after PDF connectors.\n"
     "Always check context.document_formats and context.connector_guide before selecting connectors.\n\n"
+
+    "THREE LINES OF DEFENSE (3LoD) PATTERN — use when the question asks about credit "
+    "quality, structural risk, investment suitability, regulatory compliance, STS eligibility, "
+    "waterfall stress scenarios, or requests a full deal assessment:\n"
+    "1. Load the deal document(s) with the appropriate connector (connector.prospectus for a "
+    "   prospectus PDF, connector.investor_report for an investor report, etc.).\n"
+    "2. lod.credit — 1st Line: inputs are pages, document, question.\n"
+    "3. lod.risk — 2nd Line: same inputs PLUS credit_output: "
+    '   {"$from": "<credit_step_id>", "path": "payload"}\n'
+    "4. lod.audit — 3rd Line: same inputs PLUS credit_output AND "
+    '   risk_output: {"$from": "<risk_step_id>", "path": "payload"}\n'
+    "The sequencing is MANDATORY: lod.risk depends_on lod.credit; lod.audit depends_on lod.risk. "
+    "Never run lod.risk without a prior lod.credit step. Never skip lod.credit.\n\n"
+
     "GREEN CLAIMS VERIFICATION — use this pattern when the question involves verifying "
     "green eligibility, EPC thresholds, PED limits, carbon footprint claims, or ESG criteria:\n"
-    "1. Extract green thresholds from the prospectus using extractor.general with a schema "
-    "   that includes epc_label_threshold, primary_energy_demand_threshold, and cfp metrics.\n"
-    "2. Run analyzer.tape_greencheck with those criteria applied to connector.loan_tape rows. "
-    "   This gives exact pass/fail counts per criterion — far more reliable than LLM inference "
-    "   for numerical threshold checks (e.g., 'how many loans have PED ≤ 27 kWh/m²?').\n"
+    "1. Extract green thresholds from the prospectus using extractor.general.\n"
+    "2. Run analyzer.tape_greencheck — exact pass/fail counts per criterion.\n"
     "3. Run analyzer.claim_vs_collateral for qualitative claim verdicts.\n"
-    "4. Synthesise with analyzer.general, passing both the greencheck results and claim assessments.\n"
-    "Do NOT skip step 2 for green verification questions — exact compliance numbers are essential.\n\n"
+    "4. Synthesise with analyzer.general, passing both results.\n"
+    "Do NOT skip step 2 for green verification questions.\n\n"
+
+    "DEFINITION EXTRACTION PATTERN — use when comparing definitions across two documents:\n"
+    "connector.prospectus + connector.investor_report → extractor.definitions (×2) "
+    "→ analyzer.definition_comparator.\n\n"
+
     "GENERAL EXTRACTION RULES:\n"
     "- Use extractor.locator before extractor.general when the target section is not at a known "
-    "  location in the document — the locator finds the right page range first.\n"
-    "- Use extractor.table to extract capital structure tables, pool statistics tables, "
-    "  or performance tables from PDFs (PDF text extraction destroys table geometry).\n"
-    "- Use analyzer.general as a final synthesis step when the question requires reasoning "
-    "  over multiple upstream data sources. Pass absence_notes for any absent data.\n"
-    "- Use analyzer.consistency to cross-check the same values appearing in two documents.\n\n"
-    "DYNAMIC DATA ANALYSIS — use when the file format is unknown, the CSV structure is "
-    "non-standard, or the question needs custom computation not covered by existing primitives:\n"
-    "1. connector.auto — load any file (CSV/XLSX/JSON/JSONL/PDF/TXT) without specifying the "
-    "   format. Use instead of connector.loan_tape when the file is unfamiliar or non-standard.\n"
-    "2. extractor.schema_inference — understand what the data is and which columns matter. "
-    "   Pass columns + sample_rows from connector.auto and the question.\n"
-    "3. analyzer.dynamic — the full autonomous loop: infers schema, generates Python code, "
-    "   runs it in a subprocess, retries on error, verifies the result. "
-    "   Use this as a single step for any 'compute X from this data' question. "
-    "   Pass columns, rows, document from connector.auto and the question.\n"
-    "   OR: use analyzer.code_gen + executor.python separately for manual control.\n"
-    "4. executor.python — runs a generated Python script (from analyzer.code_gen) against the "
-    "   full dataset and returns the JSON result. On failure, pass stderr as error_context "
-    "   back to analyzer.code_gen for an automatic fix.\n"
-    "IMPORTANT: Do NOT use connector.loan_tape for files you have not confirmed are the "
-    "standard Green Lion loan tape CSV. Use connector.auto for any other CSV/XLSX."
+    "  location in the document.\n"
+    "- Use extractor.table to extract capital structure tables or pool statistics tables.\n"
+    "- Use analyzer.general as a final synthesis step over multiple upstream sources.\n"
+    "- Use analyzer.consistency to cross-check the same values across two documents.\n\n"
+
+    "DYNAMIC DATA ANALYSIS — for unknown file formats or custom computation:\n"
+    "connector.auto → extractor.schema_inference → analyzer.dynamic (or analyzer.code_gen "
+    "+ executor.python for manual control).\n"
+    "Do NOT use connector.loan_tape for files you have not confirmed are the standard "
+    "Green Lion loan tape CSV."
 )
 
 
@@ -129,6 +134,7 @@ class Planner:
         *,
         context: Optional[dict[str, Any]] = None,
         fallback: Optional[Plan] = None,
+        system_augmentation: str = "",
     ) -> Plan:
         """Return a validated plan, preferring the LLM and falling back if needed.
 
@@ -138,14 +144,17 @@ class Planner:
             context: Optional hints (e.g. known document paths, terms) the LLM
                 may reference when filling step args.
             fallback: A deterministic plan used only if the LLM path fails.
+            system_augmentation: Optional extra instructions appended to the base
+                system prompt — strategies inject domain-specific planning directives here.
 
         Returns:
             A :class:`Plan`. ``plan.source`` records which path produced it.
         """
+        effective_system = _SYSTEM + ("\n\n" + system_augmentation if system_augmentation else "")
         try:
             raw = self._llm(
                 self._build_prompt(question, registry, context),
-                system=_SYSTEM,
+                system=effective_system,
                 max_tokens=8000,
             )
             plan = self._parse(raw)
@@ -256,12 +265,30 @@ class Planner:
     def _build_prompt(
         question: str, registry: Registry, context: Optional[dict[str, Any]]
     ) -> str:
-        catalogue = json.dumps(registry.describe(), indent=2)
-        ctx = json.dumps(context or {}, indent=2)
+        catalogue_text = _build_grouped_catalogue(registry.describe())
+
+        # Exclude data_profile from the context JSON dump — it's rendered separately below.
+        ctx_clean = {k: v for k, v in (context or {}).items() if k != "data_profile"}
+        ctx = json.dumps(ctx_clean, indent=2)
+
+        data_profile_section = ""
+        if context and context.get("data_profile"):
+            data_profile_section = (
+                f"\nDATA PROFILE (use exact names listed below):\n"
+                f"{context['data_profile']}\n\n"
+                "DATA PROFILE RULES — follow strictly:\n"
+                "- Use the exact column names from the tape profile above. "
+                "Do not invent or guess column names.\n"
+                "- Do not call extractor.schema_inference if tape columns are "
+                "already listed in the data profile.\n"
+                "- Do not load a document not listed in the data profile.\n"
+            )
+
         return (
             f"Question:\n{question}\n\n"
-            f"Available primitives (catalogue):\n{catalogue}\n\n"
-            f"Context (known paths, terms, etc.):\n{ctx}\n\n"
+            f"Available primitives (grouped by domain):\n{catalogue_text}\n\n"
+            f"Context (known paths, terms, etc.):\n{ctx}\n"
+            f"{data_profile_section}\n"
             "Produce a JSON object with keys 'explanation' (string) and 'steps' "
             "(array). Each step has: 'step_id' (unique string), 'primitive' (a "
             "name from the catalogue), 'args' (object), and optional 'depends_on' "
@@ -288,6 +315,41 @@ class Planner:
             '{"$from": "load_doc", "path": "payload.document"}}}\n\n'
             "Only reference primitives that exist in the catalogue. Return JSON only."
         )
+
+
+_GROUP_ORDER = ["connector", "extractor", "analyzer", "lod", "validator", "executor"]
+_GROUP_LABELS = {
+    "connector": "CONNECTORS",
+    "extractor": "EXTRACTORS",
+    "analyzer":  "ANALYZERS",
+    "lod":       "3LoD AGENTS (sequenced: lod.credit -> lod.risk -> lod.audit)",
+    "validator": "VALIDATORS",
+    "executor":  "EXECUTORS",
+}
+
+
+def _build_grouped_catalogue(primitives: list[dict]) -> str:
+    """Group the primitive catalogue by name prefix for clearer planner guidance."""
+    groups: dict[str, list[dict]] = {g: [] for g in _GROUP_ORDER}
+    other: list[dict] = []
+    for p in primitives:
+        prefix = str(p.get("name", "")).split(".")[0]
+        if prefix in groups:
+            groups[prefix].append(p)
+        else:
+            other.append(p)
+    parts: list[str] = []
+    for key in _GROUP_ORDER:
+        items = groups[key]
+        if not items:
+            continue
+        label = _GROUP_LABELS[key]
+        parts.append(f"--- {label} ---")
+        parts.append(json.dumps(items, indent=2))
+    if other:
+        parts.append("--- OTHER ---")
+        parts.append(json.dumps(other, indent=2))
+    return "\n".join(parts)
 
 
 def _iter_refs(value: Any) -> set[str]:

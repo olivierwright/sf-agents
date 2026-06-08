@@ -33,6 +33,16 @@ _STRATEGIES = [
             "Useful for understanding DAG structure and execution latency."
         ),
     },
+    {
+        "id": "3lod",
+        "label": "3 Lines of Defense",
+        "description": (
+            "Directs the planner to compose a Three Lines of Defense chain: "
+            "Credit Agent (1st LoD) → Risk Agent (2nd LoD) → Audit Agent (3rd LoD). "
+            "Each agent builds on the previous. Best for full deal assessments, "
+            "investment suitability, structural risk, and compliance reviews."
+        ),
+    },
 ]
 
 

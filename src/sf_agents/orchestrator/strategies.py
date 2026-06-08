@@ -1,15 +1,16 @@
 """Orchestration strategy layer.
 
-A strategy wraps :class:`Planner` with a specific prompt-augmentation or
-post-processing policy. All three strategies use the same DAG executor — the
-difference is how the question is framed (Thorough, Minimal) or how the
-resulting plan is annotated (ParallelFirst).
+A strategy wraps :class:`Planner` with a specific system-augmentation or
+post-processing policy. Each strategy can inject domain-specific planning
+directives into the planner's system prompt via ``system_augmentation()``.
+All strategies use the same DAG executor — the difference is how planning
+is guided.
 
 Usage::
 
     from sf_agents.orchestrator.strategies import build_strategy
 
-    strategy = build_strategy("minimal")
+    strategy = build_strategy("3lod")
     plan = strategy.plan(question, registry, context=ctx, fallback=fb)
 """
 
@@ -31,6 +32,14 @@ class BaseStrategy:
     def __init__(self, llm: Optional[JsonLLM] = None) -> None:
         self._planner = Planner(llm=llm)
 
+    def system_augmentation(self, _question: str) -> str:
+        """Return extra instructions to inject into the planner's system prompt.
+
+        Subclasses override this to inject domain-specific planning directives
+        without touching the base system prompt.
+        """
+        return ""
+
     def plan(
         self,
         question: str,
@@ -39,7 +48,12 @@ class BaseStrategy:
         context: Optional[dict] = None,
         fallback: Optional[Plan] = None,
     ) -> Plan:
-        raise NotImplementedError
+        return self._planner.plan(
+            question, registry,
+            context=context,
+            fallback=fallback,
+            system_augmentation=self.system_augmentation(question),
+        )
 
 
 class ThoroughStrategy(BaseStrategy):
@@ -47,26 +61,19 @@ class ThoroughStrategy(BaseStrategy):
 
     strategy_id = "thorough"
 
-    def plan(self, question, registry, *, context=None, fallback=None) -> Plan:
-        return self._planner.plan(question, registry, context=context, fallback=fallback)
-
 
 class MinimalStrategy(BaseStrategy):
     """LLM given a cost-optimisation constraint: fewest steps that still verify."""
 
     strategy_id = "minimal"
 
-    _CONSTRAINT = (
-        "\n\nPLANNING CONSTRAINT: Produce the MINIMUM number of steps that still "
-        "produce a cited, verified answer. Prefer primitives that combine multiple "
-        "functions. Omit any step whose output is not directly needed by a later step "
-        "or the final answer. Do not include validation steps unless the question "
-        "explicitly asks about data quality."
-    )
-
-    def plan(self, question, registry, *, context=None, fallback=None) -> Plan:
-        return self._planner.plan(
-            question + self._CONSTRAINT, registry, context=context, fallback=fallback
+    def system_augmentation(self, _question: str) -> str:
+        return (
+            "PLANNING CONSTRAINT: Produce the MINIMUM number of steps that still "
+            "produce a cited, verified answer. Prefer primitives that combine multiple "
+            "functions. Omit any step whose output is not directly needed by a later step "
+            "or the final answer. Do not include validation steps unless the question "
+            "explicitly asks about data quality."
         )
 
 
@@ -80,8 +87,20 @@ class ParallelFirstStrategy(BaseStrategy):
 
     strategy_id = "parallel_first"
 
+    def system_augmentation(self, _question: str) -> str:
+        return (
+            "PLANNING HINT: Where steps are independent (no data dependency), "
+            "structure the plan so they can be identified as parallel-ready — "
+            "group them at the same dependency depth."
+        )
+
     def plan(self, question, registry, *, context=None, fallback=None) -> Plan:
-        base_plan = self._planner.plan(question, registry, context=context, fallback=fallback)
+        base_plan = self._planner.plan(
+            question, registry,
+            context=context,
+            fallback=fallback,
+            system_augmentation=self.system_augmentation(question),
+        )
         return self._annotate_waves(base_plan)
 
     @staticmethod
@@ -114,10 +133,27 @@ class ParallelFirstStrategy(BaseStrategy):
         return Plan(steps=sorted_steps, explanation=new_explanation, source=plan.source)
 
 
+class LodStrategy(BaseStrategy):
+    """Three Lines of Defense strategy — directs the planner to compose a
+    credit → risk → audit agent chain using the lod.* primitives."""
+
+    strategy_id = "3lod"
+
+    def system_augmentation(self, _question: str) -> str:
+        return (
+            "PLANNING DIRECTIVE: Compose a Three Lines of Defense chain. "
+            "After loading deal document(s), chain: "
+            "lod.credit → lod.risk (receives credit_output) → lod.audit (receives credit_output + risk_output). "
+            "Use $from references to wire the prior agent payload into each subsequent agent. "
+            "The question must be passed to each agent as the 'question' arg."
+        )
+
+
 _STRATEGY_MAP: dict[str, type[BaseStrategy]] = {
     "thorough": ThoroughStrategy,
     "minimal": MinimalStrategy,
     "parallel_first": ParallelFirstStrategy,
+    "3lod": LodStrategy,
 }
 
 
@@ -125,7 +161,7 @@ def build_strategy(strategy_id: str, llm: Optional[JsonLLM] = None) -> BaseStrat
     """Construct a strategy instance by id.
 
     Args:
-        strategy_id: One of ``"thorough"``, ``"minimal"``, ``"parallel_first"``.
+        strategy_id: One of ``"thorough"``, ``"minimal"``, ``"parallel_first"``, ``"3lod"``.
         llm: Optional JSON-LLM callable (defaults to Bedrock inside Planner).
 
     Raises:

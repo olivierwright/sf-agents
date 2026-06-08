@@ -42,6 +42,10 @@ EXPECTED = {
     "formatter.visualization",
     # Executors
     "executor.python",
+    # 3 Lines of Defense agents
+    "lod.credit",
+    "lod.risk",
+    "lod.audit",
 }
 
 

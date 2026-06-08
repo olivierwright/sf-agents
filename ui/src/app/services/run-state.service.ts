@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ApiService, RecipeInfo, UseCaseInfo, DealResponse, HealthResponse } from './api.service';
+import { ApiService, RecipeInfo, UseCaseInfo, DealResponse, HealthResponse, PrimitiveInfo } from './api.service';
 import { SseService, RunEventData } from './sse.service';
 
 // Synthesis + server reload can take 15-20s after run_finished fires.
@@ -43,6 +43,7 @@ export class RunStateService {
   readonly recipes = signal<RecipeInfo[]>([]);
   readonly useCases = signal<UseCaseInfo[]>([]);
   readonly deal = signal<DealResponse | null>(null);
+  readonly primitives = signal<PrimitiveInfo[]>([]);
 
   readonly runId = signal<string | null>(null);
   readonly phase = signal<RunPhase>('idle');
@@ -68,6 +69,9 @@ export class RunStateService {
   // Active recipe (set when a recipe run starts, cleared on reset)
   readonly activeRecipe = signal<string>('');
   readonly lodMode = computed(() => this.activeRecipe() === '3lod');
+
+  // Real-time 3LoD agent outputs — keyed by step_id, populated as LOD_AGENT_FINISHED fires
+  readonly lodAgentOutputs = signal<Record<string, Record<string, unknown>>>({});
 
   // Human-in-the-loop clarification state
   readonly pendingClarification = signal<{
@@ -102,6 +106,7 @@ export class RunStateService {
     this.api.recipes().subscribe((r) => this.recipes.set(r));
     this.api.useCases().subscribe((uc) => this.useCases.set(uc));
     this.api.deal().subscribe((d) => this.deal.set(d));
+    this.api.primitives().subscribe((p) => this.primitives.set(p));
   }
 
   // ── Run lifecycle ───────────────────────────────────────────────────────
@@ -277,6 +282,15 @@ export class RunStateService {
         });
         break;
 
+      case 'lod_agent_finished': {
+        const stepId = ev.payload['step_id'] as string;
+        const agentOutput = ev.payload['output'] as Record<string, unknown>;
+        if (stepId && agentOutput) {
+          this.lodAgentOutputs.update((m) => ({ ...m, [stepId]: agentOutput }));
+        }
+        break;
+      }
+
       case 'verification_done':
         this.phase.set('verifying');
         break;
@@ -341,5 +355,6 @@ export class RunStateService {
     this.finishedAt.set(null);
     this.pendingClarification.set(null);
     this.activeRecipe.set('');
+    this.lodAgentOutputs.set({});
   }
 }

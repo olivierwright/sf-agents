@@ -1,29 +1,36 @@
-import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy, ViewChild } from '@angular/core';
 import { RunStateService } from './services/run-state.service';
 import { TopbarComponent } from './components/topbar.component';
 import { DealSidebarComponent } from './components/deal-sidebar.component';
 import { ExecutionTerminalComponent } from './components/execution-terminal.component';
 import { ResultsPanelComponent } from './components/results-panel.component';
+import { DealContextBarComponent } from './components/deal-context-bar.component';
+import { AuditDrawerComponent } from './components/audit-drawer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     TopbarComponent,
+    DealContextBarComponent,
     DealSidebarComponent,
     ExecutionTerminalComponent,
     ResultsPanelComponent,
+    AuditDrawerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="terminal-shell">
       <app-topbar />
+      <app-deal-context-bar />
       <div class="terminal-body">
         <app-deal-sidebar />
         <app-execution-terminal />
         <app-results-panel />
       </div>
     </div>
+    <!-- Audit drawer lives outside the main layout so it slides over everything -->
+    <app-audit-drawer #auditDrawer />
   `,
   styles: [
     `
@@ -67,6 +74,7 @@ import { ResultsPanelComponent } from './components/results-panel.component';
 })
 export class App implements OnInit {
   private state = inject(RunStateService);
+  @ViewChild('auditDrawer') auditDrawer!: AuditDrawerComponent;
 
   ngOnInit(): void {
     this.state.loadInitialData();

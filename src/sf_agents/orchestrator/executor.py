@@ -27,6 +27,13 @@ from .registry import Registry
 
 logger = logging.getLogger("sf_agents.executor")
 
+# Maps lod.* primitive names to (line_number, display_label) for LOD_AGENT events.
+_LOD_LINE_MAP: dict[str, tuple[int, str]] = {
+    "lod.credit": (1, "Credit Agent"),
+    "lod.risk":   (2, "Risk Agent"),
+    "lod.audit":  (3, "Audit Agent"),
+}
+
 # Signature: (step_id, primitive, output, question) -> human answer str
 AskHuman = Callable[[str, str, PrimitiveOutput, str], str]
 
@@ -117,6 +124,13 @@ class Executor:
                     EventType.STEP_STARTED,
                     {"step_id": step.step_id, "primitive": step.primitive},
                 )
+                if step.primitive in _LOD_LINE_MAP:
+                    line, label = _LOD_LINE_MAP[step.primitive]
+                    self._emit(
+                        EventType.LOD_AGENT_STARTED,
+                        {"step_id": step.step_id, "agent": step.primitive,
+                         "line": line, "label": label},
+                    )
                 if self._tracer:
                     self._tracer.log_step_start(
                         step_id=step.step_id,
@@ -146,6 +160,13 @@ class Executor:
                         "issues": list(output.issues),
                     },
                 )
+                if step.primitive in _LOD_LINE_MAP and isinstance(output.payload, dict):
+                    line, label = _LOD_LINE_MAP[step.primitive]
+                    self._emit(
+                        EventType.LOD_AGENT_FINISHED,
+                        {"step_id": step.step_id, "agent": step.primitive,
+                         "line": line, "label": label, "output": output.payload},
+                    )
 
                 # Never trigger HITL when the extractor has autonomously certified
                 # that the data is genuinely absent — it already exhausted all
@@ -175,9 +196,13 @@ class Executor:
                         },
                     )
 
-                # Only trigger HITL on COMPLETE failure with no absence certification.
-                is_total_failure = output.confidence == 0.0 and not absence_certified
-                if is_total_failure and output.confidence < self._config.confidence_floor:
+                # Trigger HITL / review for any output below the confidence floor,
+                # unless the extractor certified absence (those are intentional gaps).
+                is_below_floor = (
+                    output.confidence < self._config.confidence_floor
+                    and not absence_certified
+                )
+                if is_below_floor:
                     if self._ask_human is not None:
                         question = _generate_clarification_question(
                             step.step_id, step.primitive, output, plan.explanation
@@ -225,7 +250,7 @@ class Executor:
                                     logger.info(
                                         "step %s: retry improved confidence %.2f → %.2f",
                                         step.step_id,
-                                        clarifications[-1]["confidence"] if clarifications else 0,
+                                        confidence_before,
                                         retry_output.confidence,
                                     )
                                 else:

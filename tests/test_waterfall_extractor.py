@@ -26,7 +26,19 @@ def test_extracts_steps(mock_llm):
 
 
 def test_citations_reference_real_pages(mock_llm):
-    pages = _pages({5: "Priority of Payments: waterfall text here", 6: "cure of PDL"})
+    # Pages must contain waterfall keywords so the density strategy selects them.
+    pages = _pages({
+        5: (
+            "5.2 Priority of Payments. Revenue Priority of Payments.\n"
+            "First, to pay senior fees capped at 0.02% per annum.\n"
+            "Second, to pay Class A interest on the scheduled interest amount.\n"
+            "Third, to cure any debit balance on the Principal Deficiency Ledger."
+        ),
+        6: (
+            "Post-Enforcement Priority of Payments.\n"
+            "First, to pay all outstanding Senior Administrative Expenses."
+        ),
+    })
     ext = WaterfallExtractor(llm=mock_llm)
     out = ext(PrimitiveInput(args={"pages": pages, "document": "prospectus.pdf"}))
 

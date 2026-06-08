@@ -68,10 +68,12 @@ def test_unknown_strategy_raises():
 # ---------------------------------------------------------------------------
 
 def test_minimal_strategy_adds_planning_constraint(mock_llm):
-    captured: list[str] = []
+    captured_systems: list[str] = []
 
-    def capturing_llm(prompt, **_):
-        captured.append(prompt)
+    def capturing_llm(prompt, system=None, **_):
+        # MinimalStrategy injects PLANNING CONSTRAINT into the system prompt,
+        # not the user prompt — capture the system arg.
+        captured_systems.append(system or "")
         return {"steps": [], "explanation": ""}
 
     from sf_agents.orchestrator.registry import build_default_registry
@@ -83,8 +85,8 @@ def test_minimal_strategy_adds_planning_constraint(mock_llm):
     except Exception:
         pass
 
-    assert captured, "LLM should have been called"
-    assert "PLANNING CONSTRAINT" in captured[0]
+    assert captured_systems, "LLM should have been called"
+    assert "PLANNING CONSTRAINT" in captured_systems[0]
 
 
 # ---------------------------------------------------------------------------

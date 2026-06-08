@@ -12,6 +12,29 @@ router = APIRouter()
 
 
 @functools.lru_cache(maxsize=1)
+def _load_pdf_page_counts() -> dict[str, int]:
+    """Read page counts from all PDFs in Sample Data/ once at startup.
+
+    Returns a dict mapping filename -> page count. Uses pypdf; silently
+    returns 0 for any PDF that cannot be read (scanned/locked).
+    """
+    data_dir = Path("Sample Data")
+    counts: dict[str, int] = {}
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        return counts
+
+    for pdf_path in data_dir.glob("*.pdf"):
+        try:
+            reader = PdfReader(str(pdf_path))
+            counts[pdf_path.name] = len(reader.pages)
+        except Exception:
+            counts[pdf_path.name] = 0
+    return counts
+
+
+@functools.lru_cache(maxsize=1)
 def _load_summary() -> dict[str, Any]:
     """Read the loan tape once and compute summary stats."""
     try:
@@ -60,7 +83,7 @@ def _load_summary() -> dict[str, Any]:
     # Green metrics
     green_pct: float | None = None
     if "epc_label" in df.columns:
-        green_labels = {"A", "A+", "A++", "B"}
+        green_labels = {"A", "A+", "A++", "A+++", "B"}
         green_count = int(df["epc_label"].isin(green_labels).sum())
         green_pct = round(green_count / len(df) * 100, 1)
 
@@ -85,6 +108,12 @@ def _load_summary() -> dict[str, Any]:
     if "reporting_date" in df.columns:
         reporting_date = str(df["reporting_date"].iloc[0])
 
+    # Real page counts from PDFs (read once, cached)
+    page_counts = _load_pdf_page_counts()
+
+    def _pages(filename: str) -> int:
+        return page_counts.get(filename, 0) or 0
+
     return {
         "deal": {
             "name": transaction_name or "Green Lion 2026-1",
@@ -107,17 +136,38 @@ def _load_summary() -> dict[str, Any]:
         },
         "vintage": vintage,
         "documents": [
-            {"name": "Green Lion 2026-1 Prospectus", "type": "prospectus", "pages": 42},
-            {"name": "Green Lion 2026-1 Investor Report (Jan)", "type": "investor_report", "pages": 18},
-            {"name": "ISS Second Party Opinion", "type": "spo", "pages": 12},
-            {"name": "CFP Impact Report", "type": "impact_report", "pages": 8},
+            {
+                "name": "Green Lion 2026-1 Prospectus",
+                "type": "prospectus",
+                "pages": _pages("green-lion-2026-1-prospectus.pdf"),
+                "file": "green-lion-2026-1-prospectus.pdf",
+            },
+            {
+                "name": "Monthly Investor Report (April 2026)",
+                "type": "investor_report",
+                "pages": _pages("monthly-investor-report-green-lion-2026-1-april-2026.pdf"),
+                "file": "monthly-investor-report-green-lion-2026-1-april-2026.pdf",
+            },
+            {
+                "name": "ISS Second Party Opinion",
+                "type": "spo",
+                "pages": _pages("green-lion-2026-1-iss-second-party-opinion-spo.pdf"),
+                "file": "green-lion-2026-1-iss-second-party-opinion-spo.pdf",
+            },
+            {
+                "name": "CFP Impact Report",
+                "type": "impact_report",
+                "pages": _pages("green-lion-2026-1-cfp-impact-report.pdf"),
+                "file": "green-lion-2026-1-cfp-impact-report.pdf",
+            },
         ],
         "tape": {
+            # Exact column names from the real tape
             "key_green_fields": [
                 "epc_label",
-                "primary_energy_demand_kwh",
+                "epc_issue_year",
+                "primary_energy_demand_kwh_m2",
                 "construction_deposit_flag",
-                "energy_efficiency_class",
             ],
         },
     }

@@ -18,7 +18,25 @@
       "Bash(npx tsc *)",
       "Bash(python -c \"import ast, sys; ast.parse\\(open\\('api/routes/runs.py'\\).read\\(\\)\\); print\\('runs.py: syntax OK'\\)\")",
       "Bash(python -c \"import ast; ast.parse\\(open\\(r'e:\\\\REPOS\\\\sf-agents\\\\api\\\\routes\\\\runs.py'\\).read\\(\\)\\); print\\('runs.py: syntax OK'\\)\")",
-      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in [r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\lod\\\\primitives.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\lod\\\\prompts.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\recipes\\\\lod.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\orchestrator\\\\registry.py']]; print\\('All Python files: syntax OK'\\)\")"
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in [r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\lod\\\\primitives.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\lod\\\\prompts.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\recipes\\\\lod.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\orchestrator\\\\registry.py']]; print\\('All Python files: syntax OK'\\)\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Angular:', d.get\\('dependencies',{}\\).get\\('@angular/core','?'\\)\\); print\\('zone.js:', d.get\\('dependencies',{}\\).get\\('zone.js','not present'\\)\\); print\\('chart.js:', d.get\\('dependencies',{}\\).get\\('chart.js','?'\\)\\)\")",
+      "Bash(python -m pytest tests/ --co -q)",
+      "Bash(python -m pytest tests/ -q --tb=no)",
+      "Bash(python -m pytest tests/ -q --tb=short)",
+      "Bash(python -m pytest tests/test_registry.py -q --tb=short)",
+      "Bash(python -m pytest tests/test_strategies.py -q --tb=short)",
+      "Bash(python -m pytest tests/test_run_events.py::test_human_review_emitted_when_confidence_below_floor tests/test_events.py::test_low_confidence_triggers_human_review -q --tb=short)",
+      "Bash(python -m pytest tests/test_registry.py tests/test_strategies.py tests/test_events.py::test_low_confidence_triggers_human_review tests/test_run_events.py::test_human_review_emitted_when_confidence_below_floor -q --tb=short)",
+      "Bash(python -m pytest tests/test_waterfall_extractor.py -q --tb=short)",
+      "Bash(python -m pytest tests/test_definition_transparency_e2e.py -q --tb=short)",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(python -c \"import pypdf; print\\(pypdf.__version__\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -m pytest tests/test_definition_transparency_e2e.py -q --tb=no)",
+      "Bash(npm install *)",
+      "Bash(npx ng *)",
+      "Bash(python -m sf_agents --help)",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'src'\\); from api.routes.runs import _synthesize_ic_verdict, _build_data_profile; from api.routes.health import warmup; from sf_agents.orchestrator.planner import Planner; from sf_agents.primitives.extractors.schema_inference import SchemaInferenceExtractor; print\\('All imports OK'\\)\")"
     ]
   }
 }

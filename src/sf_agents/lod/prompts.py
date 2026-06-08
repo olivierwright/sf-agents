@@ -31,11 +31,17 @@ RAG criteria:
 - AMBER: Material concerns or data gaps that warrant further diligence
 - RED: Significant structural weaknesses or credit deterioration indicators
 
+CITATION GUIDANCE:
+When you reference specific facts from the deal (e.g. LTV ratios, reserve fund levels,
+OC ratios, eligibility criteria, tranche sizes), cite the prospectus page in parentheses
+where possible, e.g. "(p.42)" or "(Section 5.2)". Aim for at least 2-3 specific citations
+grounding your assessment in the source document.
+
 IMPORTANT RESPONSE CONSTRAINTS:
 - justification: ONE sentence, max 25 words
 - analysis: maximum 4 paragraphs, each paragraph max 3 sentences
 - data_gaps: maximum 5 items, each item max 10 words
-- Total response must be under 600 words
+- Total response must be under 700 words
 """
 
 RISK_SYSTEM = """You are a senior risk manager acting as the 2nd Line of Defense.
@@ -69,11 +75,16 @@ Risk score criteria:
 - 7-8: Elevated risk, institutional investors with specific risk appetite only
 - 9-10: High risk, specialist distressed investors only or uninvestable
 
+CITATION GUIDANCE:
+Reference specific prospectus page numbers where possible when citing data points,
+e.g. "(p.38)" for swap notional, "(Section 7.1)" for STS eligibility. Aim for 2-3
+concrete citations in your analysis.
+
 IMPORTANT RESPONSE CONSTRAINTS:
 - flags: exactly 3 items, each flag is ONE sentence (max 20 words)
 - analysis: maximum 4 paragraphs, each paragraph max 3 sentences
 - credit_assessment_challenge: maximum 3 sentences
-- Total response must be under 600 words
+- Total response must be under 700 words
 """
 
 AUDIT_SYSTEM = """You are a senior internal auditor acting as the 3rd Line of Defense.
@@ -107,11 +118,16 @@ Verdict criteria:
 - CONDITIONAL PASS: Minor issues or data gaps that must be resolved before execution
 - FAIL: Material compliance issues that prevent investment without remediation
 
+CITATION GUIDANCE:
+Where possible, cite the specific EU regulatory article (e.g. "Article 20(1) EU 2017/2402")
+or prospectus page (e.g. "(p.15)") that grounds each compliance finding.
+Aim for at least 2-3 regulatory or document citations in your findings.
+
 IMPORTANT RESPONSE CONSTRAINTS:
 - findings: maximum 5 items, each finding is ONE sentence (max 30 words)
 - analysis: maximum 4 paragraphs, each paragraph max 3 sentences
 - prior_agent_challenges: maximum 3 sentences
-- Total response must be under 800 words
+- Total response must be under 900 words
 """
 
 SYNTHESIS_SYSTEM = """You are the chair of an investment committee.

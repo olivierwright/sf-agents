@@ -358,33 +358,45 @@ interface AgentPanel {
 })
 export class LodResultsComponent {
   readonly steps = input.required<StepEvent[]>();
-  readonly result = input<Record<string, unknown> | null>(null);
+  // Real-time agent outputs keyed by step_id — populated as LOD_AGENT_FINISHED events fire
+  readonly lodOutputs = input<Record<string, Record<string, unknown>>>({});
 
   private expandedSteps = signal<Set<string>>(new Set());
 
   readonly panels = computed<AgentPanel[]>(() => {
     const steps = this.steps();
-    const lod = (this.result() as any)?.['lod'] as Record<string, unknown> | undefined;
+    const outputs = this.lodOutputs();
 
-    const LOD_AGENTS: { stepId: string; primitive: string; label: string; line: number; lineLabel: string }[] = [
-      { stepId: 'lod_credit', primitive: 'lod.credit', label: 'Credit Agent', line: 1, lineLabel: '1st Line of Defense' },
-      { stepId: 'lod_risk',   primitive: 'lod.risk',   label: 'Risk Agent',   line: 2, lineLabel: '2nd Line of Defense' },
-      { stepId: 'lod_audit',  primitive: 'lod.audit',  label: 'Audit Agent',  line: 3, lineLabel: '3rd Line of Defense' },
-    ];
-
-    const payloadKey: Record<string, string> = {
-      'lod.credit': 'credit',
-      'lod.risk': 'risk',
-      'lod.audit': 'audit',
+    // Metadata keyed by primitive name — stable regardless of what step_id the
+    // LLM planner chose.
+    const PRIMITIVE_META: Record<string, { label: string; line: number; lineLabel: string }> = {
+      'lod.credit': { label: 'Credit Agent', line: 1, lineLabel: '1st Line of Defense' },
+      'lod.risk':   { label: 'Risk Agent',   line: 2, lineLabel: '2nd Line of Defense' },
+      'lod.audit':  { label: 'Audit Agent',  line: 3, lineLabel: '3rd Line of Defense' },
     };
 
-    return LOD_AGENTS.map((agent) => {
-      const step = steps.find((s) => s.step_id === agent.stepId);
-      const payload = lod?.[payloadKey[agent.primitive]] as Record<string, unknown> | undefined;
-      if (!step) {
-        return { ...agent, status: 'waiting' as const, payload };
-      }
-      return { ...agent, status: step.status, payload: step.status === 'done' ? payload : undefined };
+    // Find all LoD steps that have actually appeared in the run (from step_started events).
+    const lodSteps = steps.filter(s => s.primitive?.startsWith('lod.'));
+
+    // Build one panel per known lod primitive, in line order.
+    const primitiveOrder = ['lod.credit', 'lod.risk', 'lod.audit'];
+    return primitiveOrder.map(primitive => {
+      const meta = PRIMITIVE_META[primitive];
+      // Find the actual step for this primitive (dynamic step_id from the plan)
+      const step = lodSteps.find(s => s.primitive === primitive);
+      // Derive the step_id — fall back to the recipe default so outputs remain
+      // accessible when running the hardcoded 3LoD fallback plan.
+      const stepId = step?.step_id ?? primitive.replace('.', '_');
+      const payload = outputs[stepId];
+      return {
+        stepId,
+        primitive,
+        label: meta.label,
+        line: meta.line,
+        lineLabel: meta.lineLabel,
+        status: step ? step.status : 'waiting' as const,
+        payload,
+      };
     });
   });
 

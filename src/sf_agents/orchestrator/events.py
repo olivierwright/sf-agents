@@ -27,6 +27,9 @@ class EventType(str, enum.Enum):
     VERIFICATION_DONE = "verification_done"
     RUN_FINISHED = "run_finished"
     RUN_ERROR = "run_error"
+    # 3LoD agent lifecycle events — carry structured output for real-time UI updates
+    LOD_AGENT_STARTED  = "lod_agent_started"
+    LOD_AGENT_FINISHED = "lod_agent_finished"
 
 
 @dataclass

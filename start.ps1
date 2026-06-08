@@ -58,6 +58,15 @@ if ($api.HasExited) {
     exit 1
 }
 
+# Prewarm connectors — populates pypdf and pandas caches before the first request
+Write-Host "  Prewarming connectors…" -ForegroundColor DarkYellow
+try {
+    $warm = Invoke-RestMethod -Uri "http://localhost:8000/api/warmup" -Method Get -ErrorAction Stop
+    Write-Host "  ✓ Warm ($($warm.files_loaded) files, $($warm.duration_ms)ms)" -ForegroundColor Green
+} catch {
+    Write-Host "  ⚠ Warmup skipped — server may still be starting" -ForegroundColor DarkYellow
+}
+
 # Start Angular in the foreground (Ctrl+C stops everything)
 try {
     Set-Location "$root\ui"

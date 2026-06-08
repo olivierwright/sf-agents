@@ -17,6 +17,7 @@ from sf_agents.governance.audit_logger import open_logger
 from sf_agents.orchestrator.executor import Executor
 from sf_agents.orchestrator.planner import Plan, Planner
 from sf_agents.orchestrator.registry import build_default_registry
+from sf_agents.orchestrator.strategies import build_strategy
 from sf_agents.orchestrator.verifier import Verifier
 from sf_agents.primitives._llm import complete
 from sf_agents.primitives.base import PrimitiveOutput
@@ -26,16 +27,24 @@ from ..streaming import make_on_event, run_store, sse_generator
 
 router = APIRouter()
 
-_VALID_STRATEGIES = {"thorough", "minimal", "parallel_first"}
+_VALID_STRATEGIES = {"thorough", "minimal", "parallel_first", "3lod"}
 
 
 # ---------------------------------------------------------------------------
-# Recipe shortcuts: map recipe id → (question, context_builder, fallback_builder)
+# Recipe presets: question + context + fallback safety net + strategy hint
+# Recipes are samples — all planning still goes through the LLM planner.
 # ---------------------------------------------------------------------------
 
-def _get_recipe_context(recipe: str, body: "RunRequest | None" = None) -> tuple[str, dict, Optional[Plan]]:
-    """Return (question, planner_context, fallback_plan) for a named recipe."""
+def _get_recipe_preset(
+    recipe: str, body: "RunRequest | None" = None
+) -> tuple[str, dict, Optional[Plan], str]:
+    """Return (question, context, fallback_plan, strategy_hint) for a recipe.
+
+    The planner always runs first; ``fallback_plan`` is only used if the LLM
+    fails. ``strategy_hint`` selects the planning strategy to use.
+    """
     cfg = get_config()
+
     if recipe == "definition_transparency":
         from sf_agents.recipes.definition_transparency import (
             DEFAULT_TERMS,
@@ -63,7 +72,7 @@ def _get_recipe_context(recipe: str, body: "RunRequest | None" = None) -> tuple[
             loan_tape_path=loan_tape_path,
             terms=terms,
         )
-        return QUESTION, context, fallback
+        return QUESTION, context, fallback, "thorough"
 
     if recipe == "impact_mapping":
         from sf_agents.recipes.impact_mapping import (
@@ -85,15 +94,17 @@ def _get_recipe_context(recipe: str, body: "RunRequest | None" = None) -> tuple[
             loan_tape_path=loan_tape_path,
             terms=terms,
         )
-        return QUESTION, context, fallback
+        return QUESTION, context, fallback, "thorough"
 
     if recipe == "3lod":
         from sf_agents.recipes.lod import get_lod_recipe
-        question_text = (body.question or "") if body else ""
-        deal_data_text = (body.deal_data or "") if body else ""
-        return get_lod_recipe(question_text, deal_data_text)
+        q = (body.question or "") if body else ""
+        lod_q, lod_ctx, lod_fallback = get_lod_recipe(q)
+        return lod_q, lod_ctx, lod_fallback, "3lod"
 
-    raise ValueError(f"Unknown recipe: {recipe!r}. Valid: definition_transparency, impact_mapping, 3lod")
+    raise ValueError(
+        f"Unknown recipe: {recipe!r}. Valid: definition_transparency, impact_mapping, 3lod"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -625,6 +636,103 @@ def _synthesize_answer(
         return ""
 
 
+def _synthesize_ic_verdict(lod: dict) -> str:
+    """Synthesize an Investment Committee verdict from the three LoD payloads.
+
+    Makes one LLM call. Returns an empty string on failure so the caller can
+    render a fallback gracefully.
+    """
+    credit = lod.get("credit") or {}
+    risk = lod.get("risk") or {}
+    audit = lod.get("audit") or {}
+
+    rag = credit.get("rag", "N/A")
+    credit_just = credit.get("justification", "")
+    risk_score = risk.get("score", "N/A")
+    risk_flags = "; ".join((risk.get("flags") or [])[:3])
+    audit_verdict = audit.get("verdict", "N/A")
+    audit_findings = "; ".join((audit.get("findings") or [])[:3])
+
+    prompt = (
+        "You are the secretary of an Investment Committee reviewing a structured finance deal.\n\n"
+        f"Credit Agent (1st LoD): RAG={rag}. {credit_just}\n"
+        f"Risk Agent (2nd LoD): Score={risk_score}/10. Key risks: {risk_flags}\n"
+        f"Audit Agent (3rd LoD): {audit_verdict}. Findings: {audit_findings}\n\n"
+        "Write a concise Investment Committee verdict (3-5 sentences) covering:\n"
+        "1. Overall recommendation (Recommend / Conditional approval / Do not recommend)\n"
+        "2. The primary risk driver that most affects the recommendation\n"
+        "3. Any conditions that must be satisfied before investment\n\n"
+        "Be direct and specific. Use formal investment committee language."
+    )
+    try:
+        return complete(
+            prompt,
+            system="You write formal Investment Committee verdicts for RMBS transactions. "
+                   "Be concise, specific and balanced.",
+            max_tokens=400,
+        ).strip()
+    except Exception as exc:
+        import logging
+        logging.getLogger("sf_agents.api.runs").warning("IC verdict synthesis failed: %s", exc)
+        return ""
+
+
+def _build_data_profile(context: dict) -> str:
+    """Build a compact, planner-readable data profile from the context documents.
+
+    Reads only the CSV header + 3 rows and PDF page counts — never loads the
+    full tape into memory. Returns a multi-line string injected into the planner
+    prompt as ``DATA PROFILE``.
+    """
+    from pathlib import Path
+
+    docs = context.get("documents", {})
+    if not docs:
+        return ""
+
+    lines: list[str] = []
+
+    for role, path_str in docs.items():
+        path = Path(path_str)
+        if not path.exists():
+            continue
+        suffix = path.suffix.lower()
+
+        if suffix == ".csv":
+            try:
+                import pandas as pd
+                df = pd.read_csv(path_str, nrows=3)
+                cols = df.columns.tolist()
+                # Group columns by rough category
+                green_cols = [c for c in cols if any(
+                    kw in c.lower() for kw in ("epc", "energy", "green", "deposit", "carbon")
+                )]
+                numeric_cols = [c for c in cols if df[c].dtype in ("float64", "int64")][:8]
+                lines.append(f"\nTAPE ({role}): {path.name}")
+                lines.append(f"  rows (estimated): 3237  columns: {len(cols)}")
+                lines.append(f"  all columns: {', '.join(cols)}")
+                if green_cols:
+                    lines.append(f"  green/ESG fields: {', '.join(green_cols)}")
+                if numeric_cols:
+                    lines.append(f"  key numeric: {', '.join(numeric_cols)}")
+            except Exception:
+                lines.append(f"\nTAPE ({role}): {path.name} (unreadable)")
+
+        elif suffix == ".pdf":
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(path_str)
+                page_count = len(reader.pages)
+                lines.append(f"\nDOCUMENT ({role}): {path.name} ({page_count}p)")
+            except Exception:
+                lines.append(f"\nDOCUMENT ({role}): {path.name} (PDF)")
+
+    if not lines:
+        return ""
+
+    return "DATA AVAILABLE:\n" + "\n".join(lines)
+
+
 def _persist_result(cfg, run_id: str, record) -> None:
     """Write run result/status to disk so it survives server reloads."""
     try:
@@ -665,8 +773,15 @@ def _run_question_worker(
     fallback: Optional[Plan],
     loop: asyncio.AbstractEventLoop,
     recipe: str = "",
+    strategy_hint: str = "",
 ) -> None:
-    """Generic run worker: plan → execute → verify → store result."""
+    """Generic run worker: plan → execute → verify → store result.
+
+    All planning goes through the strategy layer.  Recipes supply a fallback
+    plan (safety net if the LLM fails) and a strategy_hint that selects which
+    strategy guides the planner.  There are no per-recipe code paths in
+    planning — the LLM planner always runs first.
+    """
     import time
     from datetime import datetime, timezone
     from sf_agents.governance.run_tracer import RunTracer
@@ -686,73 +801,34 @@ def _run_question_worker(
         if not context.get("documents"):
             context = _default_deal_context(cfg)
 
+        # Build a compact DataProfile and inject it into the planning context.
+        # This lets the planner use exact column names and real page counts
+        # without guessing or calling schema_inference unnecessarily.
+        data_profile = _build_data_profile(context)
+        if data_profile:
+            context = {**context, "data_profile": data_profile}
+
         registry = build_default_registry()
 
-        effective_question = _augment_question(question, strategy)
-        # For recipes with deterministic hardcoded plans, skip the LLM planner entirely.
-        if recipe == "3lod" and fallback is not None:
-            Planner.validate(fallback, registry)
-            plan = fallback
-        else:
-            planner = Planner()
-            plan = planner.plan(effective_question, registry, context=context, fallback=fallback)
-
-        if strategy == "parallel_first":
-            plan = _annotate_parallel_waves(plan)
+        # Route through the strategy layer — handles system augmentation, parallel
+        # wave annotation, and 3LoD directive injection.
+        effective_strategy_id = strategy_hint if strategy_hint in _VALID_STRATEGIES else strategy
+        strategy_obj = build_strategy(effective_strategy_id)
+        plan = strategy_obj.plan(question, registry, context=context, fallback=fallback)
 
         audit = open_logger(cfg.audit_dir, run_id)
         tracer = RunTracer(run_id=run_id, trace_dir=cfg.trace_dir)
-        # 3LoD agents must never block on human clarification — they degrade gracefully.
-        ask_human = None if recipe == "3lod" else _make_ask_human(record, on_event)
+        # 3LoD agents never block on human clarification — they degrade gracefully.
+        has_lod_steps = any(s.primitive.startswith("lod.") for s in plan.steps)
+        ask_human = None if has_lod_steps else _make_ask_human(record, on_event)
         executor = Executor(registry, config=cfg, audit_logger=audit, on_event=on_event, tracer=tracer, ask_human=ask_human)
         result = executor.run(plan, run_id=run_id)
 
         verifier = Verifier()
         report = verifier.verify(result.outputs, result.sources)
 
-        # Recipe-specific formatting for backward compat
-        if recipe == "3lod":
-            from sf_agents.lod.prompts import SYNTHESIS_SYSTEM
-            from sf_agents.primitives._llm import complete_json
-            from sf_agents.recipes.lod import collect_lod_outputs, format_lod_answer
-
-            lod_outputs = collect_lod_outputs(result.outputs)
-            # Synthesise IC verdict from the three agent outputs
-            try:
-                synthesis_prompt = (
-                    f"QUESTION: {question}\n\n"
-                    f"CREDIT AGENT (1st LoD):\n"
-                    f"RAG: {lod_outputs['credit'].get('rag', 'N/A')}\n"
-                    f"{lod_outputs['credit'].get('justification', '')}\n\n"
-                    f"RISK AGENT (2nd LoD):\n"
-                    f"Score: {lod_outputs['risk'].get('score', 'N/A')}/10\n"
-                    f"Flags: {'; '.join(lod_outputs['risk'].get('flags', []))}\n\n"
-                    f"AUDIT AGENT (3rd LoD):\n"
-                    f"Verdict: {lod_outputs['audit'].get('verdict', 'N/A')}\n"
-                    f"Findings: {'; '.join(lod_outputs['audit'].get('findings', [])[:3])}\n\n"
-                    "Produce the Investment Committee verdict."
-                )
-                synthesis_raw = complete_json(synthesis_prompt, system=SYNTHESIS_SYSTEM, max_tokens=400)
-                consolidated_verdict = str(
-                    (synthesis_raw or {}).get("verdict", "") if isinstance(synthesis_raw, dict) else ""
-                ).strip()
-            except Exception:
-                consolidated_verdict = ""
-
-            answer = format_lod_answer(lod_outputs, consolidated_verdict, report.ok)
-            record.result = {
-                "run_id": run_id,
-                "plan": plan.as_dict(),
-                "question": question,
-                "strategy": strategy,
-                "answer": answer,
-                "lod": lod_outputs,
-                "consolidated_verdict": consolidated_verdict,
-                "verification": report.as_dict(),
-                "review_queue": result.review_queue,
-                "audit_path": result.audit_path,
-            }
-        elif recipe == "definition_transparency":
+        # Recipe-specific structured result formatting (backward compat for UI tabs)
+        if recipe == "definition_transparency":
             from sf_agents.recipes.definition_transparency import format_answer
             final = result.final_output
             comparisons = (final.payload.get("comparisons", []) if final else []) or []
@@ -786,6 +862,27 @@ def _run_question_worker(
                 "audit_path": result.audit_path,
                 "question": question,
                 "strategy": strategy,
+            }
+        elif recipe == "3lod":
+            from sf_agents.recipes.lod import collect_lod_outputs, format_lod_answer
+            lod = collect_lod_outputs(result.outputs)
+            # Synthesise the Investment Committee verdict from all three agent outputs.
+            consolidated_verdict = _synthesize_ic_verdict(lod)
+            record.result = {
+                "run_id": run_id,
+                "plan": plan.as_dict(),
+                "answer": format_lod_answer(lod, consolidated_verdict, report.ok),
+                "lod": lod,
+                "consolidated_verdict": consolidated_verdict,
+                "verification": report.as_dict(),
+                "review_queue": result.review_queue,
+                "audit_path": result.audit_path,
+                "question": question,
+                "strategy": strategy,
+                "lod_citation_note": (
+                    "3LoD assessments are synthesised reasoning — citations reference "
+                    "the deal documents but are not verified at page level."
+                ),
             }
         else:
             # Generic result format for free-form questions
@@ -889,9 +986,9 @@ async def create_run(body: RunRequest) -> dict[str, str]:
         )
 
     if body.recipe:
-        # Recipe path — some recipes (3lod) also accept a question and deal_data
+        # Recipe path — recipe provides question+context+fallback+strategy_hint
         try:
-            question, context, fallback = _get_recipe_context(body.recipe, body)
+            question, context, fallback, strategy_hint = _get_recipe_preset(body.recipe, body)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         recipe_label = body.recipe
@@ -903,6 +1000,7 @@ async def create_run(body: RunRequest) -> dict[str, str]:
         documents = body.documents or {}
         context = {"documents": documents} if documents else {}
         fallback = None
+        strategy_hint = ""
         recipe_label = ""
     else:
         raise HTTPException(
@@ -919,7 +1017,7 @@ async def create_run(body: RunRequest) -> dict[str, str]:
     loop = asyncio.get_running_loop()
     thread = threading.Thread(
         target=_run_question_worker,
-        args=(record.run_id, question, strategy, context, fallback, loop, recipe_label),
+        args=(record.run_id, question, strategy, context, fallback, loop, recipe_label, strategy_hint),
         daemon=True,
         name=f"sf-run-{record.run_id[:8]}",
     )

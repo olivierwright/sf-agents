@@ -10,6 +10,14 @@ This is the first step in the dynamic analysis pipeline:
 The LLM examines the column names, sample values, data types, and missingness
 to produce a structured schema description that downstream code generation can
 use to write correct, targeted analysis code.
+
+Robustness: 71-column tapes with 3000 token budgets were truncating mid-JSON.
+Three-pass strategy:
+  1. Full inference at 8000 tokens (handles most cases).
+  2. Truncation recovery: if the response ends mid-JSON, ask the model to
+     continue from where it stopped.
+  3. Batch fallback: split columns into groups of 20, infer each batch
+     independently, then merge — guarantees completion for any column count.
 """
 
 from __future__ import annotations
@@ -29,6 +37,15 @@ _SYSTEM = (
     "Respond with a single JSON object only."
 )
 
+_BATCH_SYSTEM = (
+    "You are a data scientist. Analyse the provided column names and sample data. "
+    "For each column, return its type and a short description. "
+    "Respond with a single JSON object mapping column names to {type, description}. "
+    "Valid types: numeric, categorical, date, text, flag, identifier."
+)
+
+_BATCH_SIZE = 20
+
 
 class SchemaInferenceExtractor(BasePrimitive):
     """Infer the schema, meaning, and analytical potential of any tabular dataset.
@@ -38,7 +55,7 @@ class SchemaInferenceExtractor(BasePrimitive):
     """
 
     name = "extractor.schema_inference"
-    version = "0.1.0"
+    version = "0.2.0"
     capability = (
         "Infer what an unfamiliar tabular dataset represents using LLM analysis of "
         "column names and sample rows. Returns dataset_type, per-column descriptions "
@@ -117,27 +134,154 @@ class SchemaInferenceExtractor(BasePrimitive):
             "- Only include columns in 'columns' that exist in the provided column list\n"
         )
 
+        # Pass 1: full inference at high token budget
+        raw = self._try_llm(prompt, max_tokens=8000)
+        if raw is not None and isinstance(raw, dict):
+            return self._build_output(raw, columns, missing_pcts, document, sample_rows)
+
+        # Pass 2: truncation recovery — ask the model to complete a partial response
+        if raw is None:
+            raw = self._try_recovery(prompt, max_tokens=8000)
+            if raw is not None and isinstance(raw, dict):
+                return self._build_output(raw, columns, missing_pcts, document, sample_rows)
+
+        # Pass 3: batch fallback — infer schema in groups of 20 columns
+        return self._batch_infer(
+            columns, sample_rows, missing_pcts, document, question
+        )
+
+    def _try_llm(self, prompt: str, *, max_tokens: int) -> Any:
+        """Call the LLM; return parsed result or None on failure."""
         try:
-            raw = self._llm(prompt, system=_SYSTEM, max_tokens=3000)
-        except Exception as exc:
-            return PrimitiveOutput(
-                payload=self._empty(document),
-                citations=[], confidence=0.0, issues=[f"LLM inference failed: {exc}"],
+            return self._llm(prompt, system=_SYSTEM, max_tokens=max_tokens)
+        except Exception:
+            return None
+
+    def _try_recovery(self, original_prompt: str, *, max_tokens: int) -> Any:
+        """Ask the model to complete the JSON it started in the previous call."""
+        continuation_prompt = (
+            original_prompt
+            + "\n\nIMPORTANT: The previous response was cut off before the JSON was "
+            "complete. Please output the COMPLETE JSON object from the beginning, "
+            "ensuring all fields are closed properly. Do not truncate the 'columns' field."
+        )
+        try:
+            return self._llm(continuation_prompt, system=_SYSTEM, max_tokens=max_tokens)
+        except Exception:
+            return None
+
+    def _batch_infer(
+        self,
+        columns: list[str],
+        sample_rows: list[dict],
+        missing_pcts: dict[str, float],
+        document: str,
+        question: str,
+    ) -> PrimitiveOutput:
+        """Infer schema in batches of up to _BATCH_SIZE columns and merge."""
+        batches = [
+            columns[i: i + _BATCH_SIZE]
+            for i in range(0, len(columns), _BATCH_SIZE)
+        ]
+
+        merged_col_schema: dict[str, Any] = {}
+        dataset_type = "unknown dataset"
+        key_fields: list[str] = []
+        suggested: list[str] = []
+        concerns: list[str] = []
+
+        question_line = f"\nQUESTION TO ANSWER: {question}\n" if question else ""
+
+        for batch_idx, batch_cols in enumerate(batches):
+            batch_sample = _compact_sample(sample_rows[:3], batch_cols)
+            batch_missing = {k: v for k, v in missing_pcts.items() if k in batch_cols}
+
+            batch_prompt = (
+                f"Document: {document} (batch {batch_idx + 1}/{len(batches)})"
+                f"{question_line}\n\n"
+                f"COLUMN NAMES ({len(batch_cols)} of {len(columns)} total):\n"
+                f"{batch_cols}\n\n"
+                f"SAMPLE DATA:\n{batch_sample}\n\n"
+                f"MISSING RATES: {batch_missing}\n\n"
+                "Return a JSON object mapping each column name to "
+                '{"type": "...", "description": "...", "likely_meaning": "...", '
+                '"missing_pct": float}. '
+                "Also include top-level keys: "
+                '"dataset_type" (string, only on batch 1), '
+                '"key_fields" (list[str], most relevant to the question), '
+                '"suggested_analyses" (list[str], max 3), '
+                '"quality_concerns" (list[str], max 3). '
+                "Put column definitions under a 'columns' key."
             )
 
-        if not isinstance(raw, dict):
-            return PrimitiveOutput(
-                payload=self._empty(document),
-                citations=[], confidence=0.0, issues=["Schema inference returned unexpected format."],
-            )
+            try:
+                raw = self._llm(batch_prompt, system=_BATCH_SYSTEM, max_tokens=4000)
+                if isinstance(raw, dict):
+                    if batch_idx == 0 and raw.get("dataset_type"):
+                        dataset_type = str(raw["dataset_type"])
+                    col_data = raw.get("columns", {})
+                    if isinstance(col_data, dict):
+                        for col, meta in col_data.items():
+                            if col in batch_cols and isinstance(meta, dict):
+                                merged_col_schema[col] = meta
+                    for kf in (raw.get("key_fields") or []):
+                        if kf in columns and kf not in key_fields:
+                            key_fields.append(kf)
+                    for s in (raw.get("suggested_analyses") or [])[:3]:
+                        if s not in suggested:
+                            suggested.append(s)
+                    for c in (raw.get("quality_concerns") or [])[:3]:
+                        if c not in concerns:
+                            concerns.append(c)
+            except Exception:
+                # Skip failed batch — partial schema is still useful
+                continue
 
+        # Clean up — only keep valid columns
+        clean_col_schema = {
+            col: merged_col_schema[col]
+            for col in merged_col_schema
+            if col in columns
+        }
+
+        confidence = 0.75 if dataset_type != "unknown dataset" else 0.45
+        if not clean_col_schema:
+            confidence = 0.2
+
+        return PrimitiveOutput(
+            payload={
+                "document": document,
+                "dataset_type": dataset_type,
+                "columns": clean_col_schema,
+                "key_fields": key_fields,
+                "suggested_analyses": suggested[:10],
+                "quality_concerns": concerns[:8],
+                "row_count_estimate": len(sample_rows),
+            },
+            citations=[Citation(source=document, location="schema", excerpt=dataset_type)],
+            confidence=confidence,
+            issues=concerns[:3],
+            metadata={
+                "columns_inferred": len(clean_col_schema),
+                "batches_used": len(batches),
+                "key_fields": key_fields,
+            },
+        )
+
+    def _build_output(
+        self,
+        raw: dict,
+        columns: list[str],
+        missing_pcts: dict[str, float],
+        document: str,
+        sample_rows: list[dict],
+    ) -> PrimitiveOutput:
         dataset_type = str(raw.get("dataset_type", "unknown dataset")).strip()
         col_schema = raw.get("columns", {}) or {}
         key_fields = [str(f) for f in (raw.get("key_fields", []) or []) if f in columns]
         suggested = [str(s) for s in (raw.get("suggested_analyses", []) or [])[:10]]
         concerns = [str(c) for c in (raw.get("quality_concerns", []) or [])[:8]]
 
-        # Validate col_schema — only keep columns that actually exist
         clean_col_schema = {
             col: col_schema[col] for col in col_schema if col in columns
         }

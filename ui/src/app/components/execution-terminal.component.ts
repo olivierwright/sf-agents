@@ -142,7 +142,7 @@ function fmtTs(iso: string): string {
               or type a question above and press Run Analysis.
             </div>
             <div class="empty-primitives">
-              14 primitives registered · 3 orchestration strategies · governance-first
+              {{ state.primitives().length || '…' }} primitives registered · 4 orchestration strategies · governance-first
             </div>
           </div>
         }

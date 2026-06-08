@@ -19,6 +19,7 @@ const STRATEGIES = [
   { id: 'parallel_first', label: 'Parallel' },
 ];
 
+
 function primType(name: string): string {
   return name.split('.')[0] ?? 'connector';
 }
@@ -176,6 +177,7 @@ function fmtTs(iso: string): string {
       .input-row {
         margin-bottom: var(--sp-3);
       }
+
       .question-ta {
         width: 100%;
         resize: none;

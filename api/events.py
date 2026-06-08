@@ -43,6 +43,10 @@ class RunRequest(BaseModel):
         default=None,
         description="Document paths keyed by role, e.g. {'prospectus': '/path/to/file.pdf'}.",
     )
+    deal_data: str | None = Field(
+        default=None,
+        description="Free-text deal data for the 3lod recipe (term sheet, pool stats, prospectus excerpt, etc.).",
+    )
     run_id: str | None = Field(
         default=None,
         description="Optional caller-supplied run ID (UUID generated server-side if absent).",

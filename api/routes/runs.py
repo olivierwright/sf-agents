@@ -33,7 +33,7 @@ _VALID_STRATEGIES = {"thorough", "minimal", "parallel_first"}
 # Recipe shortcuts: map recipe id → (question, context_builder, fallback_builder)
 # ---------------------------------------------------------------------------
 
-def _get_recipe_context(recipe: str) -> tuple[str, dict, Optional[Plan]]:
+def _get_recipe_context(recipe: str, body: "RunRequest | None" = None) -> tuple[str, dict, Optional[Plan]]:
     """Return (question, planner_context, fallback_plan) for a named recipe."""
     cfg = get_config()
     if recipe == "definition_transparency":
@@ -87,7 +87,13 @@ def _get_recipe_context(recipe: str) -> tuple[str, dict, Optional[Plan]]:
         )
         return QUESTION, context, fallback
 
-    raise ValueError(f"Unknown recipe: {recipe!r}. Valid: definition_transparency, impact_mapping")
+    if recipe == "3lod":
+        from sf_agents.recipes.lod import get_lod_recipe
+        question_text = (body.question or "") if body else ""
+        deal_data_text = (body.deal_data or "") if body else ""
+        return get_lod_recipe(question_text, deal_data_text)
+
+    raise ValueError(f"Unknown recipe: {recipe!r}. Valid: definition_transparency, impact_mapping, 3lod")
 
 
 # ---------------------------------------------------------------------------
@@ -681,17 +687,23 @@ def _run_question_worker(
             context = _default_deal_context(cfg)
 
         registry = build_default_registry()
-        planner = Planner()
 
         effective_question = _augment_question(question, strategy)
-        plan = planner.plan(effective_question, registry, context=context, fallback=fallback)
+        # For recipes with deterministic hardcoded plans, skip the LLM planner entirely.
+        if recipe == "3lod" and fallback is not None:
+            Planner.validate(fallback, registry)
+            plan = fallback
+        else:
+            planner = Planner()
+            plan = planner.plan(effective_question, registry, context=context, fallback=fallback)
 
         if strategy == "parallel_first":
             plan = _annotate_parallel_waves(plan)
 
         audit = open_logger(cfg.audit_dir, run_id)
         tracer = RunTracer(run_id=run_id, trace_dir=cfg.trace_dir)
-        ask_human = _make_ask_human(record, on_event)
+        # 3LoD agents must never block on human clarification — they degrade gracefully.
+        ask_human = None if recipe == "3lod" else _make_ask_human(record, on_event)
         executor = Executor(registry, config=cfg, audit_logger=audit, on_event=on_event, tracer=tracer, ask_human=ask_human)
         result = executor.run(plan, run_id=run_id)
 
@@ -699,7 +711,48 @@ def _run_question_worker(
         report = verifier.verify(result.outputs, result.sources)
 
         # Recipe-specific formatting for backward compat
-        if recipe == "definition_transparency":
+        if recipe == "3lod":
+            from sf_agents.lod.prompts import SYNTHESIS_SYSTEM
+            from sf_agents.primitives._llm import complete_json
+            from sf_agents.recipes.lod import collect_lod_outputs, format_lod_answer
+
+            lod_outputs = collect_lod_outputs(result.outputs)
+            # Synthesise IC verdict from the three agent outputs
+            try:
+                synthesis_prompt = (
+                    f"QUESTION: {question}\n\n"
+                    f"CREDIT AGENT (1st LoD):\n"
+                    f"RAG: {lod_outputs['credit'].get('rag', 'N/A')}\n"
+                    f"{lod_outputs['credit'].get('justification', '')}\n\n"
+                    f"RISK AGENT (2nd LoD):\n"
+                    f"Score: {lod_outputs['risk'].get('score', 'N/A')}/10\n"
+                    f"Flags: {'; '.join(lod_outputs['risk'].get('flags', []))}\n\n"
+                    f"AUDIT AGENT (3rd LoD):\n"
+                    f"Verdict: {lod_outputs['audit'].get('verdict', 'N/A')}\n"
+                    f"Findings: {'; '.join(lod_outputs['audit'].get('findings', [])[:3])}\n\n"
+                    "Produce the Investment Committee verdict."
+                )
+                synthesis_raw = complete_json(synthesis_prompt, system=SYNTHESIS_SYSTEM, max_tokens=400)
+                consolidated_verdict = str(
+                    (synthesis_raw or {}).get("verdict", "") if isinstance(synthesis_raw, dict) else ""
+                ).strip()
+            except Exception:
+                consolidated_verdict = ""
+
+            answer = format_lod_answer(lod_outputs, consolidated_verdict, report.ok)
+            record.result = {
+                "run_id": run_id,
+                "plan": plan.as_dict(),
+                "question": question,
+                "strategy": strategy,
+                "answer": answer,
+                "lod": lod_outputs,
+                "consolidated_verdict": consolidated_verdict,
+                "verification": report.as_dict(),
+                "review_queue": result.review_queue,
+                "audit_path": result.audit_path,
+            }
+        elif recipe == "definition_transparency":
             from sf_agents.recipes.definition_transparency import format_answer
             final = result.final_output
             comparisons = (final.payload.get("comparisons", []) if final else []) or []
@@ -835,10 +888,10 @@ async def create_run(body: RunRequest) -> dict[str, str]:
             detail=f"Unknown strategy {strategy!r}. Valid: {sorted(_VALID_STRATEGIES)}",
         )
 
-    if body.recipe and not body.question:
-        # Recipe shortcut path
+    if body.recipe:
+        # Recipe path — some recipes (3lod) also accept a question and deal_data
         try:
-            question, context, fallback = _get_recipe_context(body.recipe)
+            question, context, fallback = _get_recipe_context(body.recipe, body)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         recipe_label = body.recipe

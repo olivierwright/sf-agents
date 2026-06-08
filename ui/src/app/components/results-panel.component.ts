@@ -10,8 +10,9 @@ import {
 import { RunStateService } from '../services/run-state.service';
 import { ApiService } from '../services/api.service';
 import { DashboardPanelComponent } from './dashboard-panel.component';
+import { LodResultsComponent } from './lod-results.component';
 
-type Tab = 'answer' | 'citations' | 'audit' | 'trace' | 'dashboard';
+type Tab = 'answer' | 'citations' | 'audit' | 'trace' | 'dashboard' | 'lod';
 
 interface CitationGroup {
   source: string;
@@ -21,13 +22,13 @@ interface CitationGroup {
 @Component({
   selector: 'app-results-panel',
   standalone: true,
-  imports: [DashboardPanelComponent],
+  imports: [DashboardPanelComponent, LodResultsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="results-panel" [class.expanded]="expanded()">
       <!-- Tab bar -->
       <div class="tab-bar">
-        @for (tab of tabs; track tab.id) {
+        @for (tab of visibleTabs(); track tab.id) {
           <button
             class="tab-btn"
             [class.active]="activeTab() === tab.id"
@@ -363,6 +364,11 @@ interface CitationGroup {
         <!-- ── DASHBOARD TAB ─────────────────── -->
         @if (activeTab() === 'dashboard') {
           <app-dashboard-panel />
+        }
+
+        <!-- ── 3LOD TAB ──────────────────────── -->
+        @if (activeTab() === 'lod') {
+          <app-lod-results [steps]="state.steps()" [result]="state.result()" />
         }
 
         <!-- ── TRACE TAB ─────────────────────── -->
@@ -1300,16 +1306,24 @@ export class ResultsPanelComponent {
       ) {
         this.loadTrace();
       }
+      // Auto-switch to 3LoD tab when a 3LoD run completes
+      if (phase === 'done' && this.state.activeRecipe() === '3lod') {
+        this.activeTab.set('lod');
+      }
     });
   }
 
-  readonly tabs: { id: Tab; label: string }[] = [
+  private readonly baseTabs: { id: Tab; label: string }[] = [
     { id: 'answer', label: 'Answer' },
     { id: 'citations', label: 'Citations' },
     { id: 'audit', label: 'Audit' },
     { id: 'trace', label: 'Trace' },
     { id: 'dashboard', label: 'Dashboard' },
   ];
+
+  readonly visibleTabs = computed(() => {
+    return [...this.baseTabs, { id: 'lod' as Tab, label: '3LoD' }];
+  });
 
   readonly allCitations = computed(() => {
     const cites: { source: string; location: string; excerpt: string }[] = [];

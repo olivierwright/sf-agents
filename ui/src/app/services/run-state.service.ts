@@ -65,6 +65,10 @@ export class RunStateService {
   readonly questionDraft = signal<string>('');
   readonly strategyDraft = signal<string>('thorough');
 
+  // Active recipe (set when a recipe run starts, cleared on reset)
+  readonly activeRecipe = signal<string>('');
+  readonly lodMode = computed(() => this.activeRecipe() === '3lod');
+
   // Human-in-the-loop clarification state
   readonly pendingClarification = signal<{
     step_id: string;
@@ -102,11 +106,14 @@ export class RunStateService {
 
   // ── Run lifecycle ───────────────────────────────────────────────────────
   startRun(recipe: string): void {
+    this.activeRecipe.set(recipe);
     const label = this.recipes().find((r) => r.id === recipe)?.label ?? recipe;
-    this._launch(label, 'thorough', () => this.api.startRun(recipe));
+    const q = this.questionDraft().trim() || undefined;
+    this._launch(label, 'thorough', () => this.api.startRun(recipe, q));
   }
 
   startQuestion(question: string, strategy: string): void {
+    this.activeRecipe.set('');
     this._launch(question, strategy, () => this.api.startQuestion(question, strategy));
   }
 
@@ -333,5 +340,6 @@ export class RunStateService {
     this.startedAt.set(null);
     this.finishedAt.set(null);
     this.pendingClarification.set(null);
+    this.activeRecipe.set('');
   }
 }

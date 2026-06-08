@@ -11,7 +11,14 @@
       "PowerShell($r = Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\3f757a35-6086-44b6-86fc-c75eedb16284.trace.json\" | ConvertFrom-Json; $r.steps | ForEach-Object { Write-Host \"STEP:\" $_.step_id \"| conf:\" $_.output.confidence \"| issues:\" \\($_.output.issues -join \"; \"\\) \"| candidate_pages:\" \\($_.input_args.pages.Count\\) })",
       "PowerShell($r = Get-Content \"e:\\\\REPOS\\\\sf-agents\\\\trace_logs\\\\3f757a35-6086-44b6-86fc-c75eedb16284.trace.json\" | ConvertFrom-Json; $step = $r.steps | Where-Object { $_.step_id -eq \"extract_definitions_prospectus\" }; Write-Host \"=== CANDIDATE PAGES ===\"; $step.output.metadata | ConvertTo-Json; Write-Host \"=== DEFINITIONS FOUND ===\"; $step.output.payload | ConvertTo-Json -Depth 4)",
       "PowerShell(New-Item -ItemType Directory -Force \"e:\\\\REPOS\\\\sf-agents\\\\ui\\\\e2e\")",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python -c \"from src.sf_agents.lod.primitives import CreditAgent, RiskAgent, AuditAgent; from src.sf_agents.lod.prompts import SUGGESTED_QUESTIONS, CREDIT_SYSTEM; from src.sf_agents.recipes.lod import get_lod_recipe; print\\('Backend imports OK'\\); q, ctx, plan = get_lod_recipe\\('Test question', 'Test deal data'\\); print\\(f'Plan steps: {[s.step_id for s in plan.steps]}'\\); print\\(f'Suggested questions: {len\\(SUGGESTED_QUESTIONS\\)}'\\)\")",
+      "Bash(python -c \"from src.sf_agents.orchestrator.registry import build_default_registry; r = build_default_registry\\(\\); lod_prims = [n for n in r.names\\(\\) if n.startswith\\('lod'\\)]; print\\('Registry LoD primitives:', lod_prims\\)\")",
+      "Bash(python -c \"from api.events import RunRequest; r = RunRequest\\(recipe='3lod', question='Test', deal_data='Some deal text'\\); print\\('RunRequest OK:', r.model_dump\\(\\)\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(python -c \"import ast, sys; ast.parse\\(open\\('api/routes/runs.py'\\).read\\(\\)\\); print\\('runs.py: syntax OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'e:\\\\REPOS\\\\sf-agents\\\\api\\\\routes\\\\runs.py'\\).read\\(\\)\\); print\\('runs.py: syntax OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in [r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\lod\\\\primitives.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\lod\\\\prompts.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\recipes\\\\lod.py', r'e:\\\\REPOS\\\\sf-agents\\\\src\\\\sf_agents\\\\orchestrator\\\\registry.py']]; print\\('All Python files: syntax OK'\\)\")"
     ]
   }
 }

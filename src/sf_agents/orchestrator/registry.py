@@ -137,4 +137,9 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     registry.register(lambda hook: VisualizationFormatter(audit_hook=hook))
     # Executors
     registry.register(lambda hook: PythonRunnerExecutor(audit_hook=hook))
+    # 3LoD agents
+    from ..lod.primitives import AuditAgent, CreditAgent, RiskAgent
+    registry.register(lambda hook: CreditAgent(llm=llm, audit_hook=hook))
+    registry.register(lambda hook: RiskAgent(llm=llm, audit_hook=hook))
+    registry.register(lambda hook: AuditAgent(llm=llm, audit_hook=hook))
     return registry

@@ -162,8 +162,12 @@ export class ApiService {
     return this.http.get<DealResponse>('/api/deal');
   }
 
-  startRun(recipe: string, runId?: string): Observable<RunStartResponse> {
-    return this.http.post<RunStartResponse>('/api/runs', { recipe, run_id: runId ?? null });
+  startRun(recipe: string, question?: string, runId?: string): Observable<RunStartResponse> {
+    return this.http.post<RunStartResponse>('/api/runs', {
+      recipe,
+      question: question ?? null,
+      run_id: runId ?? null,
+    });
   }
 
   startQuestion(

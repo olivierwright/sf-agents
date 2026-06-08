@@ -35,6 +35,19 @@ _CATALOGUE = [
             {"label": "Full green assessment", "value": "full", "recommended": False},
         ],
     },
+    {
+        "id": "3lod",
+        "label": "3 Lines of Defense",
+        "description": (
+            "Sequential assessment by three specialist agents: Credit Agent (1st LoD) "
+            "rates the deal GREEN/AMBER/RED, Risk Agent (2nd LoD) scores structural risks "
+            "1–10, and Audit Agent (3rd LoD) returns a PASS/CONDITIONAL PASS/FAIL verdict "
+            "with an Investment Committee summary."
+        ),
+        "terms": ["credit quality", "structural risk", "STS compliance", "waterfall", "OC ratio"],
+        "needs_clarification": False,
+        "clarification_options": None,
+    },
 ]
 
 

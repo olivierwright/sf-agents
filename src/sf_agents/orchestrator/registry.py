@@ -82,6 +82,7 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     from ..primitives.analyzers.period_comparison import PeriodComparisonAnalyzer
     from ..primitives.analyzers.rating_action import RatingActionAnalyzer
     from ..primitives.analyzers.visualization import VisualizationFormatter
+    from ..primitives.analyzers.green_renovation_potential import GreenRenovationPotentialAnalyzer
     from ..primitives.analyzers.tape_greencheck import TapeGreencheckAnalyzer
     from ..primitives.connectors.auto import AutoConnector
     from ..primitives.connectors.investor_report import InvestorReportConnector
@@ -90,6 +91,7 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     from ..primitives.connectors.prospectus import ProspectusConnector
     from ..primitives.connectors.remittance_file import RemittanceFileConnector
     from ..primitives.connectors.text import TextConnector
+    from ..primitives.connectors.web_search import WebSearchConnector
     from ..primitives.executors.python_runner import PythonRunnerExecutor
     from ..primitives.extractors.covenants import CovenantExtractor
     from ..primitives.extractors.definition_extractor import DefinitionExtractor
@@ -109,6 +111,7 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     registry.register(lambda hook: RemittanceFileConnector(audit_hook=hook))
     registry.register(lambda hook: TextConnector(audit_hook=hook))
     registry.register(lambda hook: AutoConnector(audit_hook=hook))
+    registry.register(lambda hook: WebSearchConnector(audit_hook=hook))
     # Validators
     registry.register(lambda hook: EsmaSchemaValidator(audit_hook=hook))
     # Extractors (domain-specific)
@@ -130,6 +133,7 @@ def build_default_registry(llm: Optional[Callable] = None) -> Registry:
     registry.register(lambda hook: GeneralAnalyzer(llm=llm, audit_hook=hook))
     registry.register(lambda hook: ConsistencyAnalyzer(llm=llm, audit_hook=hook))
     registry.register(lambda hook: TapeGreencheckAnalyzer(audit_hook=hook))
+    registry.register(lambda hook: GreenRenovationPotentialAnalyzer(audit_hook=hook))
     registry.register(lambda hook: CodeGenAnalyzer(llm=llm, audit_hook=hook))
     registry.register(lambda hook: DynamicAnalyzer(llm=llm, audit_hook=hook))
     # Analyzers (period comparison & visualization)

@@ -34,11 +34,15 @@ class Config:
     audit_dir: Path
     trace_dir: Path = None  # type: ignore[assignment]  # see __post_init__
     confidence_floor: float = 0.35
+    tavily_api_key: str = ""
+    web_search_enabled: bool = False
 
     def __post_init__(self) -> None:
         # Provide a sensible default for trace_dir if not supplied.
         if self.trace_dir is None:
             object.__setattr__(self, "trace_dir", self.audit_dir.parent / "trace_logs")
+        if not self.web_search_enabled and self.tavily_api_key:
+            object.__setattr__(self, "web_search_enabled", True)
 
     def deal_file(self, name: str) -> Path:
         """Resolve a sample-data file by name, raising if it is missing."""
@@ -59,4 +63,8 @@ def get_config() -> Config:
     audit_dir = Path(os.environ.get("SF_AGENTS_AUDIT_DIR", str(root / "audit_logs")))
     trace_dir = Path(os.environ.get("SF_AGENTS_TRACE_DIR", str(root / "trace_logs")))
     floor = float(os.environ.get("SF_AGENTS_CONFIDENCE_FLOOR", "0.35"))
-    return Config(data_dir=data_dir, audit_dir=audit_dir, trace_dir=trace_dir, confidence_floor=floor)
+    tavily_key = os.environ.get("TAVILY_API_KEY", "").strip()
+    return Config(
+        data_dir=data_dir, audit_dir=audit_dir, trace_dir=trace_dir,
+        confidence_floor=floor, tavily_api_key=tavily_key,
+    )

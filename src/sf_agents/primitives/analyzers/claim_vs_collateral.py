@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 from ..base import BasePrimitive, Citation, PrimitiveInput, PrimitiveOutput
+from ...knowledge.loader import green_section as _green_section
 
 JsonLLM = Callable[..., Any]
 
@@ -59,7 +60,10 @@ _SYSTEM = (
     "You are a structured-finance sustainability analyst. You judge whether a "
     "green claim made in a deal document is borne out by the actual loan-tape "
     "figures you are given. You never invent numbers: your verdict must follow "
-    "from the figures shown. Be conservative."
+    "from the figures shown. Be conservative.\n\n"
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _green_section() +
+    "\n=== END ==="
 )
 
 

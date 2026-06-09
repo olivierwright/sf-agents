@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 from ..base import BasePrimitive, Citation, PrimitiveInput, PrimitiveOutput
+from ...knowledge.loader import definitions_section as _definitions_section
 
 JsonLLM = Callable[..., Any]
 
@@ -22,7 +23,10 @@ _VALID_MATERIALITY = {"material", "moderate", "none"}
 _SYSTEM = (
     "You are a structured-finance documentation analyst. You compare how two "
     "sources define or operationalise the same term and judge whether the "
-    "difference is material to an investor. Be precise and conservative."
+    "difference is material to an investor. Be precise and conservative.\n\n"
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _definitions_section() +
+    "\n=== END ==="
 )
 
 

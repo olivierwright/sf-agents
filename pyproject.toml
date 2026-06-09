@@ -23,6 +23,9 @@ dependencies = [
 dev = [
     "pytest>=8.0",
 ]
+web = [
+    "tavily-python>=0.3",
+]
 
 [project.urls]
 Homepage = "https://github.com/hypoport/sf-agents"

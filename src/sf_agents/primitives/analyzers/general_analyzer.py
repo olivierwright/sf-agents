@@ -20,6 +20,7 @@ import json
 from typing import Any, Callable, Optional
 
 from ..base import BasePrimitive, Citation, PrimitiveInput, PrimitiveOutput
+from ...knowledge.loader import domain_preamble as _domain_preamble, gotchas_section as _gotchas_section, questions_section as _questions_section
 
 JsonLLM = Callable[..., Any]
 
@@ -28,7 +29,14 @@ _SYSTEM = (
     "You reason carefully from the provided data. "
     "When data is missing or uncertain, you say so explicitly — you never fabricate numbers. "
     "Your analysis is structured, specific, and cites the data it references. "
-    "Respond with a single JSON object only."
+    "Respond with a single JSON object only.\n\n"
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _domain_preamble()
+    + "\n\n"
+    + _questions_section()
+    + "\n\n"
+    + _gotchas_section()
+    + "\n=== END ==="
 )
 
 

@@ -1,148 +1,153 @@
-INFO:     127.0.0.1:64858 - "GET /api/warmup HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59526 - "GET /api/recipes HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59527 - "GET /api/use-cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59529 - "GET /api/primitives HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59528 - "GET /api/deal HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59532 - "GET /api/primitives HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52099 - "POST /api/runs HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:64233 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/stream HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50654 - "GET /api/deal/periods HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55782 - "POST /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/clarify HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52623 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52626 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59891 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52756 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:61277 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54281 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63860 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:56544 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49914 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60127 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60315 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:55566 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:56116 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51532 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:64616 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:50748 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:58932 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:64972 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51853 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63591 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62256 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62674 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62236 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59824 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49578 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62138 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:50482 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54241 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54875 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:55718 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51294 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57723 - "GET /api/runs/55c9ba57-b4ec-45b4-8aa5-adde1ce31253/result HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64546 - "POST /api/runs HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:56115 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/stream HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64146 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64147 - "GET /api/recipes HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64152 - "GET /api/primitives HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64149 - "GET /api/deal HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64148 - "GET /api/use-cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52150 - "GET /api/primitives HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55532 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63704 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52224 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62266 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:56669 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59486 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59617 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51260 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:53400 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52104 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49211 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:65119 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:53439 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51790 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:50713 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51912 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49790 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:58031 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:53404 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:57774 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:61104 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63049 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63953 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59881 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63000 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:61672 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59670 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:50722 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:64586 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54470 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:61447 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63433 - "GET /api/runs/5e1ca40e-da5d-4bf8-86d1-bac83656f8ed/result HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63592 - "POST /api/runs HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:61295 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/stream HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52808 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:65037 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54682 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:53617 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:57412 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:58505 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:61849 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60017 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:55438 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59899 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59505 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:61835 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59969 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:56522 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52650 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:53378 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60144 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:64634 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:63813 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:50679 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:50115 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:56564 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:64624 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62824 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:59316 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53084 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/result HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50748 - "GET /api/runs/cc6dbd21-6433-4537-9699-115f7dbb3891/trace HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55178 - "GET /api/deal/periods HTTP/1.1" 200 OK
-INFO:     127.0.0.1:65357 - "GET /api/deal/periods HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62880 - "GET /api/deal/periods HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52130 - "POST /api/benchmark HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:52956 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52957 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52958 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:58378 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:58380 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:58379 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52901 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52903 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52902 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49909 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49907 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49908 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52167 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52166 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:52165 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60956 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60955 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:60957 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51465 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51466 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:51464 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62385 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62386 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:62387 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54276 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54277 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:54278 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49888 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49889 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49887 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49965 - "GET /api/runs/32243792-4ef7-4dab-bec7-d9d7f45799cc/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49967 - "GET /api/runs/02231f0c-58f2-4322-9c10-4a197d9a15e7/result HTTP/1.1" 425 Too Early
-INFO:     127.0.0.1:49966 - "GET /api/runs/2e2c32a3-50db-480b-8946-4f4bc03a8db1/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51280 - "GET /api/warmup HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51304 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51305 - "GET /api/use-cases HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51306 - "GET /api/recipes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51307 - "GET /api/deal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51308 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51310 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51314 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:51317 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51327 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51331 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51335 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51338 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51341 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51344 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51347 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51350 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51354 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51357 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51360 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51363 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51366 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51370 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51373 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51376 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51380 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51383 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51386 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51389 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51393 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51396 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51400 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51403 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51406 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51409 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51414 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51417 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51420 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51423 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51427 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51430 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51433 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51436 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51440 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51443 - "GET /api/runs/1633729f-e0fb-4683-a1cc-b7b51ef302df/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51552 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51554 - "GET /api/use-cases HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51556 - "GET /api/recipes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51558 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51560 - "GET /api/deal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51562 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51749 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:51752 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51762 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51765 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51768 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51771 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51775 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51778 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51783 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51786 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51789 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51792 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51796 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51799 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51802 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51805 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51809 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51812 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51817 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51820 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51824 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51827 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51830 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51833 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51838 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51841 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51845 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51848 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51851 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51854 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51858 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51861 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51867 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51870 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51873 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51876 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51880 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51883 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51887 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51890 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:51894 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51897 - "GET /api/runs/59e6e708-6458-4605-aed1-f74890a1b4be/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51955 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:51958 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51988 - "POST /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/clarify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52022 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52045 - "GET /api/deal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52047 - "GET /api/deal/periods HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52049 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52052 - "GET /api/recipes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52054 - "GET /api/use_cases HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52056 - "GET /api/primitives HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52119 - "GET /api/use_cases HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52132 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52135 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52138 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52141 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52145 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52148 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52151 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52154 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52158 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52161 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52165 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52168 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52171 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52174 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52178 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52181 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52185 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52188 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52191 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52194 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52198 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52201 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52204 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52207 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52210 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52213 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52217 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52220 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52224 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52227 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52230 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52233 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52237 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52240 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52243 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52246 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 425 Too Early
+INFO:     127.0.0.1:52249 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/result HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52302 - "GET /api/deal/periods HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52307 - "GET /api/runs/9b486dbc-1288-45fa-b891-f251e19622eb/trace HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52314 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:52316 - "GET /api/runs/650eb8ef-64c2-4ec4-a61e-11b97fd5603d/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52486 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:52488 - "GET /api/runs/77dabb18-972c-47cd-b57c-bc8bf62d9f0d/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52509 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:52511 - "GET /api/runs/a5b78360-75fc-4ec0-9544-ca09e230ae59/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52672 - "GET /api/runs/650eb8ef-64c2-4ec4-a61e-11b97fd5603d HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52742 - "POST /api/runs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:52744 - "GET /api/runs/a3fe2e19-cb68-4459-acbb-0dd4da2a9fc1/stream HTTP/1.1" 200 OK

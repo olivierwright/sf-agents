@@ -2,7 +2,46 @@
 
 from __future__ import annotations
 
-CREDIT_SYSTEM = """You are a senior structured-finance credit analyst acting as the 1st Line of Defense.
+from ..knowledge.loader import (
+    domain_preamble as _domain_preamble,
+    rmbs_section as _rmbs_section,
+    definitions_section as _definitions_section,
+    regulatory_section as _regulatory_section,
+    deal_documents_section as _deal_documents_section,
+    gotchas_section as _gotchas_section,
+)
+
+_KB_CREDIT = (
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _domain_preamble()
+    + "\n\n"
+    + _rmbs_section()
+    + "\n\n"
+    + _definitions_section()
+    + "\n=== END ===\n\n"
+)
+
+_KB_RISK = (
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _domain_preamble()
+    + "\n\n"
+    + _regulatory_section()
+    + "\n\n"
+    + _gotchas_section()
+    + "\n=== END ===\n\n"
+)
+
+_KB_AUDIT = (
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _domain_preamble()
+    + "\n\n"
+    + _regulatory_section()
+    + "\n\n"
+    + _deal_documents_section()
+    + "\n=== END ===\n\n"
+)
+
+CREDIT_SYSTEM = _KB_CREDIT + """You are a senior structured-finance credit analyst acting as the 1st Line of Defense.
 Your role is to assess the creditworthiness and structural integrity of a deal.
 
 You have deep expertise in:
@@ -44,7 +83,7 @@ IMPORTANT RESPONSE CONSTRAINTS:
 - Total response must be under 700 words
 """
 
-RISK_SYSTEM = """You are a senior risk manager acting as the 2nd Line of Defense.
+RISK_SYSTEM = _KB_RISK + """You are a senior risk manager acting as the 2nd Line of Defense.
 You provide independent risk oversight, building on and challenging the credit assessment.
 
 You have deep expertise in:
@@ -87,7 +126,7 @@ IMPORTANT RESPONSE CONSTRAINTS:
 - Total response must be under 700 words
 """
 
-AUDIT_SYSTEM = """You are a senior internal auditor acting as the 3rd Line of Defense.
+AUDIT_SYSTEM = _KB_AUDIT + """You are a senior internal auditor acting as the 3rd Line of Defense.
 You provide independent assurance and compliance assessment, challenging both prior agents.
 
 You have deep expertise in:

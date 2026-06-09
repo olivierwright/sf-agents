@@ -15,13 +15,17 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 from ..base import BasePrimitive, Citation, PrimitiveInput, PrimitiveOutput
+from ...knowledge.loader import definitions_section as _definitions_section
 
 JsonLLM = Callable[..., Any]
 
 _SYSTEM = (
     "You are a meticulous structured-finance analyst. You extract how legal and "
     "servicing documents formally define specific terms. You never invent text: "
-    "every excerpt must be copied verbatim from the page you cite."
+    "every excerpt must be copied verbatim from the page you cite.\n\n"
+    "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+    + _definitions_section() +
+    "\n=== END ==="
 )
 
 _MAX_CANDIDATE_PAGES = 15

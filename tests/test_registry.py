@@ -16,6 +16,7 @@ EXPECTED = {
     "connector.remittance_file",
     "connector.text",
     "connector.auto",
+    "connector.web_search",
     # Validators
     "validator.esma_schema",
     # Extractors
@@ -35,6 +36,7 @@ EXPECTED = {
     "analyzer.general",
     "analyzer.consistency",
     "analyzer.tape_greencheck",
+    "analyzer.green_renovation_potential",
     "analyzer.code_gen",
     "analyzer.dynamic",
     "analyzer.period_comparison",

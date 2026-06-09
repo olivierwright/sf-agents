@@ -19,6 +19,7 @@ from sf_agents.orchestrator.planner import Plan, Planner
 from sf_agents.orchestrator.registry import build_default_registry
 from sf_agents.orchestrator.strategies import build_strategy
 from sf_agents.orchestrator.verifier import Verifier
+from sf_agents.knowledge.loader import domain_preamble as _domain_preamble, questions_section as _questions_section
 from sf_agents.primitives._llm import complete
 from sf_agents.primitives.base import PrimitiveOutput
 
@@ -601,8 +602,19 @@ def _synthesize_answer(
             version="0.1.0",
             input_args={"question": question, "step_count": len(outputs)},
         )
+    synthesis_system = (
+        "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+        + _domain_preamble()
+        + "\n\n"
+        + _questions_section()
+        + "\n=== END ===\n\n"
+        "You are a structured finance analyst producing a final answer for an investor. "
+        "Use precise domain terminology. Never confuse CPR with CDR. "
+        "When green claims are assessed, always state which criterion was applied (EPC label vs PED threshold). "
+        "When arrears are discussed, always clarify the arrears bucket definition used."
+    )
     try:
-        result = complete(prompt, max_tokens=1200, temperature=0.3).strip()
+        result = complete(prompt, system=synthesis_system, max_tokens=1200, temperature=0.3).strip()
         if tracer:
             tracer.log_llm(
                 step_id="synthesize_answer",
@@ -664,11 +676,18 @@ def _synthesize_ic_verdict(lod: dict) -> str:
         "3. Any conditions that must be satisfied before investment\n\n"
         "Be direct and specific. Use formal investment committee language."
     )
+    ic_system = (
+        "=== STRUCTURED FINANCE DOMAIN KNOWLEDGE ===\n"
+        + _domain_preamble()
+        + "\n=== END ===\n\n"
+        "You write formal Investment Committee verdicts for RMBS transactions. "
+        "Be concise, specific and balanced. Reference actual data points, not generalities. "
+        "Do not say 'the transaction appears sound' — say why, with numbers where available."
+    )
     try:
         return complete(
             prompt,
-            system="You write formal Investment Committee verdicts for RMBS transactions. "
-                   "Be concise, specific and balanced.",
+            system=ic_system,
             max_tokens=400,
         ).strip()
     except Exception as exc:

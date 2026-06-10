@@ -483,6 +483,59 @@ def _compact_payload(step_id: str, payload: Any) -> str:
     return text[:800]
 
 
+def _strip_clarification_leaks(text: str) -> str:
+    """Remove any clarification/choice prompts that the LLM echoed into the answer.
+
+    Catches patterns like:
+    - "🤔 The automated extraction step..."
+    - "Please choose how you'd like to proceed: 1. ..."
+    - Numbered choice blocks (1. **Continue without** ... 2. **Treat as** ...)
+    """
+    import re
+
+    # Remove everything from a 🤔 emoji onward if it looks like a clarification block
+    text = re.sub(
+        r"\n*🤔.*$",
+        "",
+        text,
+        flags=re.DOTALL,
+    )
+
+    # Remove "Please choose how" blocks
+    text = re.sub(
+        r"\n*Please choose how you'?d? like to proceed[:\.].*$",
+        "",
+        text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+
+    return text.rstrip()
+
+
+def _fix_truncation(text: str) -> str:
+    """If the answer ends mid-sentence (no terminal punctuation), trim to last complete sentence."""
+    if not text:
+        return text
+
+    # If text ends with proper punctuation, it's fine
+    if text[-1] in ".!?\"')":
+        return text
+
+    # Find the last sentence-ending punctuation followed by space or quote
+    # (avoids cutting at decimal points like "53.5%")
+    import re
+    last_sentence_end = None
+    for m in re.finditer(r'[.!?](?:\s*\n|\s+[A-Z]|["\')])', text):
+        last_sentence_end = m.start() + 1  # include the period itself
+
+    if last_sentence_end and last_sentence_end > len(text) * 0.7:
+        # Only trim if we keep at least 70% of the text
+        return text[:last_sentence_end].rstrip()
+
+    # Can't find a good cut point — append ellipsis
+    return text.rstrip() + " …"
+
+
 def _synthesize_answer(
     question: str,
     outputs: dict,
@@ -513,6 +566,20 @@ def _synthesize_answer(
                 gap_notes.append(f"[{step_id}] {gap_summary}")
             continue  # don't add an empty payload to output_summary
 
+        # Steps that failed extraction (confidence=0, has issues, empty/no payload)
+        # — surface as a brief gap note rather than dumping raw issues
+        if out.confidence == 0 and out.issues:
+            terms = []
+            for issue in out.issues:
+                if "not found" in issue.lower() or "no results" in issue.lower():
+                    terms.append(issue)
+            if terms:
+                gap_notes.append(
+                    f"[{step_id}] Extraction returned no results: "
+                    + "; ".join(t[:80] for t in terms[:4])
+                )
+                continue
+
         summary = _compact_payload(step_id, payload)
         if summary:
             output_summary.append(f"[{step_id}]: {summary}")
@@ -521,7 +588,10 @@ def _synthesize_answer(
     if clarifications:
         helpful = [c for c in clarifications if c.get("helped", True)]
         unhelpful = [c for c in clarifications if not c.get("helped", True)]
-        lines = ["\n\nANALYST CLARIFICATIONS DURING ANALYSIS:"]
+        lines = [
+            "\n\nANALYST CLARIFICATIONS DURING ANALYSIS "
+            "(context only — do NOT reproduce these prompts or choices in your answer):"
+        ]
         for c in helpful:
             retry_note = ""
             if c.get("retried"):
@@ -584,13 +654,26 @@ def _synthesize_answer(
 
     prompt = (
         "You are a structured finance analyst. Using the extracted data below, "
-        "write a clear, well-structured answer to the investor's question. "
-        "Be specific — use exact numbers, percentages, and values from the data. "
-        "IMPORTANT: if claim assessment verdicts, tape statistics (EPC distribution, "
-        "PED mean/min/max), or compliance pass rates appear in the data, you MUST cite "
-        "those specific numbers in your answer — do not replace them with generic phrases "
-        "like 'may contain' or 'if the tape includes'. "
-        "Aim for 3–6 focused paragraphs. No preamble.\n\n"
+        "write a clear, well-structured answer to the investor's question.\n\n"
+        "FORMAT REQUIREMENTS:\n"
+        "1. Start with a **2-sentence verdict** that directly answers the question.\n"
+        "2. Follow with a **summary table** (markdown) of key findings — one row per "
+        "claim, covenant, or dimension analysed, showing status/verdict and the key metric.\n"
+        "3. Then provide **supporting narrative** (3–5 paragraphs) with exact numbers, "
+        "percentages, and values from the data.\n"
+        "4. End with a brief **Data Gaps** note if any extracted data was missing or "
+        "could not be verified — but do NOT expand into lengthy discussion of areas "
+        "where no framework, data, or criteria exist.\n\n"
+        "IMPORTANT RULES:\n"
+        "- If claim assessment verdicts, tape statistics (EPC distribution, PED mean/min/max), "
+        "or compliance pass rates appear in the data, you MUST cite those specific numbers — "
+        "do not replace them with generic phrases like 'may contain' or 'if the tape includes'.\n"
+        "- Do NOT echo or reproduce any analyst clarification prompts, numbered choice menus, "
+        "or 'please choose how to proceed' text in your answer. Those are internal workflow "
+        "artifacts, not part of the analysis.\n"
+        "- Do NOT speculate about dimensions where no data or framework was found. State "
+        "the absence in one sentence and move on.\n"
+        "- No preamble. Start directly with the verdict.\n\n"
         f"QUESTION: {question}\n\n"
         f"EXTRACTED DATA:\n" + "\n\n".join(data_parts) +
         skeleton_section + clar_text + cite_text + gap_text
@@ -614,7 +697,9 @@ def _synthesize_answer(
         "When arrears are discussed, always clarify the arrears bucket definition used."
     )
     try:
-        result = complete(prompt, system=synthesis_system, max_tokens=1200, temperature=0.3).strip()
+        result = complete(prompt, system=synthesis_system, max_tokens=2500, temperature=0.3).strip()
+        result = _strip_clarification_leaks(result)
+        result = _fix_truncation(result)
         if tracer:
             tracer.log_llm(
                 step_id="synthesize_answer",
